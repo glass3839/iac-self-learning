@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:       # 親スタックから受け取るパラメータ
+  StackName:
+    Type: String
+  Env:
+    Type: String
+
+Resources:
+  Ec2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action: sts:AssumeRole
+      Description: Role for Web Server
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # Management Console or AWS Cli から ARN　を確認する.
+      MaxSessionDuration: 3600
+      Path: /
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+      - Ref: Ec2Role
+
+Outputs:
+  InstanceProfile:
+    Value: !GetAtt Ec2InstanceProfile.Arn

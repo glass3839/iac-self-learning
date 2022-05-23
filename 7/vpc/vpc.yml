@@ -1,0 +1,247 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:       # 親スタックから受け取るパラメータ
+  StackName:
+    Type: String
+  Env:
+    Type: String
+  VpcCidr:
+    Type: String
+
+Resources:
+  # --- VPC ---
+  Vpc:
+    Type: AWS::EC2::VPC               # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
+    Properties:
+      CidrBlock: !Ref VpcCidr         # String型: パラメータ値を指定
+      EnableDnsHostnames: true        # Boolean型: DNSホスト名を有効
+      EnableDnsSupport: true          # Boolean型: DNS解決を有効
+      InstanceTenancy: default        # String型: dedicated | default | host のいずれか
+      # Ipv4IpamPoolId: String        # 使わないのでコメントアウト
+      # Ipv4NetmaskLength: Integer    # 使わないのでコメントアウト
+      Tags:                           # List of Tag
+        # - Key:                      # Referenceより記入例
+        #   Value:
+        - Key: Name                       # String型: Name Tag
+          Value: !Sub ${StackName}-${Env} # String型: Name Value
+
+  # --- Internet Gateway ---
+  Igw:
+    Type: AWS::EC2::InternetGateway   # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-internetgateway.html
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}
+  IgwAttach:
+    # VPC に Gateway を アタッチする.
+    Type: AWS::EC2::VPCGatewayAttachment  # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc-gateway-attachment.html
+    Properties:
+      InternetGatewayId: !Ref Igw         # InternetGateway Id
+      VpcId: !Ref Vpc                     # Vpc Id
+      # VpnGatewayId: String              # 使わないのでコメントアウト
+
+  # --- Subnets ---
+  PubSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, Fn::GetAZs: !Ref AWS::Region ] # String型: リージョン内の全Az名(List)を取得し、最初のAz名
+      CidrBlock: !Select [ 0, !Cidr [ !Ref VpcCidr, 4, 8 ] ]        # String型: VpcCidr値をサブネット逆マスク8(/24)で4つに分割、最初のサブネットCidr値
+      MapPublicIpOnLaunch: false                                    # Boolean型: 自動PublicIP割り当てを無効
+      VpcId: !Ref Vpc                                               # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-public01
+      # AssignIpv6AddressOnCreation: Boolean  # 使わないのでコメントアウト
+      # AvailabilityZoneId: String            # 使わないのでコメントアウト
+      # EnableDns64: Boolean                  # 使わないのでコメントアウト
+      # Ipv6CidrBlock: String                 # 使わないのでコメントアウト
+      # Ipv6Native: Boolean                   # 使わないのでコメントアウト
+      # MapPublicIpOnLaunch: Boolean          # 使わないのでコメントアウト
+      # OutpostArn: String                    # 使わないのでコメントアウト
+      # PrivateDnsNameOptionsOnLaunch: Json   ç
+  PubSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, Fn::GetAZs: !Ref AWS::Region ] # String型: リージョン内の全Az名(List)を取得し、2番目のAz名
+      CidrBlock: !Select [ 1, !Cidr [ !Ref VpcCidr, 4, 8 ] ]        # String型: VpcCidr値をサブネット逆マスク8(/24)で4つに分割、2番目のサブネットCidr値
+      MapPublicIpOnLaunch: false                                    # Boolean型: 自動PublicIP割り当てを無効
+      VpcId: !Ref Vpc                                               # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-public02
+  PriSubnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, Fn::GetAZs: !Ref AWS::Region ] # String型: リージョン内の全Az名(List)を取得し、最初のAz名
+      CidrBlock: !Select [ 2, !Cidr [ !Ref VpcCidr, 4, 8 ] ]        # String型: VpcCidr値をサブネット逆マスク8(/24)で4つに分割、3番目のサブネットCidr値
+      MapPublicIpOnLaunch: false                                    # Boolean型: 自動PublicIP割り当てを無効
+      VpcId: !Ref Vpc                                               # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-private01
+  PriSubnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, Fn::GetAZs: !Ref AWS::Region ] # String型: リージョン内の全Az名(List)を取得し、2番目のAz名
+      CidrBlock: !Select [ 3, !Cidr [ !Ref VpcCidr, 4, 8 ] ]        # String型: VpcCidr値をサブネット逆マスク8(/24)で4つに分割、4番目のサブネットCidr値
+      MapPublicIpOnLaunch: false                                    # Boolean型: 自動PublicIP割り当てを無効
+      VpcId: !Ref Vpc                                               # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-private02
+
+  # --- RouteTables ---
+  PubRouteTable:
+    Type: AWS::EC2::RouteTable  # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-routetable.html
+    Properties:
+      VpcId: !Ref Vpc           # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-public
+  PubRoute:
+    Type: AWS::EC2::Route                   # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0       # String型: 全アドレス
+      RouteTableId: !Ref PubRouteTable      # String型: RouteTable Id
+      GatewayId: !Ref Igw                   # String型: Internet Gateway Id
+      # CarrierGatewayId: String            # 使わないのでコメントアウト
+      # DestinationIpv6CidrBlock: String    # 使わないのでコメントアウト
+      # EgressOnlyInternetGatewayId: String # 使わないのでコメントアウト
+      # InstanceId: String                  # 使わないのでコメントアウト
+      # LocalGatewayId: String              # 使わないのでコメントアウト
+      # NatGatewayId: String                # 使わないのでコメントアウト
+      # NetworkInterfaceId: String          # 使わないのでコメントアウト
+      # TransitGatewayId: String            # 使わないのでコメントアウト
+      # VpcEndpointId: String               # 使わないのでコメントアウト
+      # VpcPeeringConnectionId: String      # 使わないのでコメントアウト
+  PubRouteSubnetAssociation01:
+    Type: AWS::EC2::SubnetRouteTableAssociation   # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnetroutetableassociation.html
+    Properties:
+      RouteTableId: !Ref PubRouteTable            # String型: RouteTable Id
+      SubnetId: !Ref PubSubnet01                  # String型: Subnet Id
+  PubRouteSubnetAssociation02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PubRouteTable
+      SubnetId: !Ref PubSubnet02
+  PriRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}-private
+  PriRouteSubnetAssociation01:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PriRouteTable
+      SubnetId: !Ref PriSubnet01
+  PriRouteSubnetAssociation02:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PriRouteTable
+      SubnetId: !Ref PriSubnet02
+
+  # --- S3 Endpoint ---
+  S3EndpointGw:
+    Type: AWS::EC2::VPCEndpoint                         # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
+    Properties:
+      PolicyDocument:                                   # Policy Document
+        Version: '2008-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: '*'
+          Resource: '*'
+      RouteTableIds:
+      - !Ref PubRouteTable                              # String型: S3 Endpoint の ルートを追加する RouteTable Id
+      - !Ref PriRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3 # String型: Consoleで名前を確認する以外ない.
+      VpcEndpointType: Gateway
+      VpcId: !Ref Vpc                                   # String型: Vpc Id
+      # PrivateDnsEnabled: Boolean  # 使わないのでコメントアウト
+      # SecurityGroupIds:           # 使わないのでコメントアウト
+      #   - String
+      # VPC Endpoint に Tag はサポートされていない.
+
+  # --- Network Acl ---
+  Nacl:
+    Type: AWS::EC2::NetworkAcl  # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-networkacl.html
+    Properties:
+      VpcId: !Ref Vpc           # String型: Vpc Id
+      Tags:
+      - Key: Name
+        Value:  !Sub ${StackName}-${Env}
+  NaclInbound100:
+    Type: AWS::EC2::NetworkAclEntry # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-networkaclentry.html
+    Properties:
+      NetworkAclId: !Ref Nacl       # String型: NACL Id
+      RuleNumber: 100               # Integer型: ルール番号
+      CidrBlock: 0.0.0.0/0          # String型: ターゲットCIDR
+      Egress: false                 # Boolean型: Inboundに設定したのでfalse
+      Protocol: -1                  # Integer型: -1はすべてのポート
+      RuleAction: allow             # String型: allow | deny
+      # Icmp:                   # 使わないのでコメントアウト
+      #   Icmp
+      # Ipv6CidrBlock: String   # 使わないのでコメントアウト
+      # PortRange:              # 使わないのでコメントアウト
+      #   PortRange
+  NaclOutbound100:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      NetworkAclId: !Ref Nacl
+      RuleNumber: 100
+      CidrBlock: 0.0.0.0/0
+      Egress: true
+      Protocol: -1
+      RuleAction: allow
+  NaclAssociationPublic01:
+    Type: AWS::EC2::SubnetNetworkAclAssociation # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnet-network-acl-assoc.html
+    Properties:
+      NetworkAclId: !Ref Nacl                   # String型: NACL Id
+      SubnetId: !Ref PubSubnet01                # String型: Subnet Id
+  NaclAssociationPublic02:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref Nacl
+      SubnetId: !Ref PubSubnet02
+  NaclAssociationPrilic01:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref Nacl
+      SubnetId: !Ref PriSubnet01
+  NaclAssociationPrilic02:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      NetworkAclId: !Ref Nacl
+      SubnetId: !Ref PriSubnet02
+
+  # --- Dhcp Option Set ---
+  DhcpOptionSet:
+    Type: AWS::EC2::DHCPOptions # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-dhcpoptions.html
+    Properties: 
+      DomainNameServers: 
+      - AmazonProvidedDNS       # String型: AWS managed resolver
+      Tags: 
+      - Key: Name
+        Value:  !Sub ${StackName}-${Env}
+      # DomainName: String        # 使わないのでコメントアウト
+      # NetbiosNameServers:       # 使わないのでコメントアウト
+      #   - String
+      # NetbiosNodeType: Integer  # 使わないのでコメントアウト
+      # NtpServers:               # 使わないのでコメントアウト
+      #   - String
+  DhcpOptionAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcdhcpoptionsassociation.html
+    Properties:
+      DhcpOptionsId: !Ref DhcpOptionSet       # String型: DhcpOptionSet Id
+      VpcId: !Ref Vpc                         # String型: Vpc Id
+
+Outputs:
+  VpcId:                   # VPC ID
+    Value: !Ref Vpc
+  PubSubnets:               # PubSunet ID カンマ区切り
+    Value: !Join [ ',', [ !Ref PubSubnet01, !Ref PubSubnet02]]
+  PriSubnets:               #  PriSunet ID カンマ区切り
+    Value: !Join [ ',', [ !Ref PriSubnet01, !Ref PriSubnet02]]

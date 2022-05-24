@@ -2,9 +2,9 @@
 
 ## Contents<!-- omit in toc -->
 - [1. はじめに](#1-はじめに)
-  - [1.1. ゴール](#11-ゴール)
+  - [1.1. 目的](#11-目的)
   - [1.2. Iacメリット・デメリット](#12-iacメリットデメリット)
-  - [1.3. IaCをやる理由](#13-iacをやる理由)
+  - [1.3. それでも、IaCをやる理由](#13-それでもiacをやる理由)
   - [1.4. 表記について](#14-表記について)
   - [1.5. 免責事項](#15-免責事項)
 - [2. 開発環境構築](#2-開発環境構築)
@@ -18,14 +18,14 @@
     - [2.2.6. 作業ディレクトリを作成後、レポジトリ クローン](#226-作業ディレクトリを作成後レポジトリ-クローン)
     - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
     - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
-    - [2.2.9. README.mdファイル作成](#229-readmemdファイル作成)
-    - [2.2.10. 変更をコミットし、CodeCommitへPush](#2210-変更をコミットしcodecommitへpush)
+- [3. CloudFormation](#3-cloudformation)
+  - [3.1. VPC](#31-vpc)
 
 ## 1. はじめに
 
-### 1.1. ゴール
+### 1.1. 目的
 
-- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発ができるようになる.
+- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発・デバッグ・テストができるようになる.
 
     <img src="./images/img.dio.png">
 
@@ -39,26 +39,31 @@
     |Document|EC2で動かすBATファイルのようなもの|
     |aws sam cli|PythonのモジュールでCloudFormationの拡張版.GUIより早くTry&Errorが可能|
 
+
 ### 1.2. Iacメリット・デメリット
 
 - メリット
   - 手順書簡素化
   - 時間の有効活用(手順書見ながら作業不要なので、他のことに時間が使える)
-  - 冪等性(誰がやっても同じ結果に) → 品質向上
+  - 冪等性(誰がやっても同じ結果に) → 品質のむらがない
 - デメリット
   - 学習コスト(時間がかかる)
   - 開発コスト(時間)が高い、覚えなければならないことが沢山
-→ デメリットの方が大きい
+→ デメリットの方が大きいのでやる意味があるのが？正直、微妙.
 
-### 1.3. IaCをやる理由
+### 1.3. それでも、IaCをやる理由
 
-- ITでご飯を食べて行くなら、やったほうがいいです。
+- Docker(K8S) → ボタンぽちぽちじゃないです.
+- CD/CI       → ボタンぽちぽちじゃないです.
+- サーバーレス  → そもそもInfra不要!?.
 
-  - Docker(K8S) → ボタンぽちぽちじゃないです。
-  - CD/CI       → ボタンぽちぽちじゃないです。
-  - サーバーレス  → そもそもInfra不要!?。
+とモダンな開発は、GUIじゃないです
 
-→ 環境定義署と手順書を見ながら手作業でやってた作業を自動化できるように英語にするのがIaCです。
+- 環境定義署をおこして、
+- 手順書見ながら、
+- スクショを切り貼り
+
+するが私には面倒・・・。
 
 ### 1.4. 表記について
 
@@ -86,9 +91,9 @@ ps> Powershellを示す
 #### 2.2.1. `pip`コマンドを実行して、`aws cli`をインストール
 
 ```bash
-> python -m pip install pip --upgrade --user
-> python -m pip install awscli --user
-> python -m pip install pipenv --user
+ps> python -m pip install pip --upgrade --user
+ps> python -m pip install awscli --user
+ps> python -m pip install pipenv --user
 ```
 
 #### 2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行
@@ -108,7 +113,7 @@ Default output format : json
 #### 2.2.4. CodeCommit(コード管理)レポジトリ作成
 
 ```bash
-> aws codecommit create-repository --repository-name [レポジトリ名]
+ps> aws codecommit create-repository --repository-name [レポジトリ名]
 ```
 
 出力例
@@ -128,10 +133,10 @@ Default output format : json
 #### 2.2.5. CodeCommit認証設定
 
 ```bash
-> git config --global user.name [YOUR NAME]
-> git config --global user.email [YOUR EMAIL ADDRESS]
-> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].helper" '!aws codecommit credential-helper $@'
-> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].UseHttpPath" true
+ps> git config --global user.name [YOUR NAME]
+ps> git config --global user.email [YOUR EMAIL ADDRESS]
+ps> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].helper" '!aws codecommit credential-helper $@'
+ps> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].UseHttpPath" true
 ```
 
 #### 2.2.6. 作業ディレクトリを作成後、レポジトリ クローン
@@ -143,11 +148,13 @@ ps> Set-Location -Path $wkdir
 ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名]
 # Git Credential Managerが表示されたら、「キャンセル」
 ps> Set-Location [レポジトリ名]
+ps> Get-Location # ← ここに表示されるPathがローカルレポジトリと言います.
 ```
 
 #### 2.2.7. Python仮想環境作成
 
 ```bash
+> cd [ローカルレポジトリ]
 > python -m pipenv --python 3.9
 Creating a virtualenv for this project...
 Pipfile: C:\Users\xxxxxxxx\Documents\work\[レポジトリ名]\Pipfile
@@ -164,6 +171,7 @@ Creating a Pipfile for this project...
 ```
 
 ```bash
+> cd [ローカルレポジトリ]
 > python -m pipenv install aws-sam-cli
 Installing aws-sam-cli...
 Adding aws-sam-cli to Pipfile's [packages]...
@@ -184,17 +192,10 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 #### 2.2.8. VisualStudioCode(以下、VsCode)起動
 
 ```bash
+> cd [ローカルレポジトリ]
 > code .
 ```
 
-#### 2.2.9. README.mdファイル作成
+## 3. CloudFormation
 
-`README.md`ファイルを作成し、「# Iac」と入力してください。
-
-#### 2.2.10. 変更をコミットし、CodeCommitへPush
-
-```bash
-> git add .
-> git commit -m 'init commit'
-> git push -u origin master
-```
+### 3.1. [VPC](./0.CloudFormation/README.md)

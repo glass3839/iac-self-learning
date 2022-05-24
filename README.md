@@ -5,20 +5,39 @@
   - [1.1. ゴール](#11-ゴール)
   - [1.2. Iacメリット・デメリット](#12-iacメリットデメリット)
   - [1.3. IaCをやる理由](#13-iacをやる理由)
-  - [1.4. 免責事項](#14-免責事項)
+  - [1.4. 表記について](#14-表記について)
+  - [1.5. 免責事項](#15-免責事項)
 - [2. 開発環境構築](#2-開発環境構築)
   - [2.1. Require](#21-require)
   - [2.2. 設定](#22-設定)
+    - [2.2.1. `pip`コマンドを実行して、`aws cli`をインストール](#221-pipコマンドを実行してaws-cliをインストール)
+    - [2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行](#222-iamユーザのアクセスキーシークレットアクセスキーを発行)
+    - [2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定](#223-aws-configureコマンドを実行してアクセスキーシークレットアクセスキーを設定)
+    - [2.2.4. CodeCommit(コード管理)レポジトリ作成](#224-codecommitコード管理レポジトリ作成)
+    - [2.2.5. CodeCommit認証設定](#225-codecommit認証設定)
+    - [2.2.6. 作業ディレクトリを作成後、レポジトリ クローン](#226-作業ディレクトリを作成後レポジトリ-クローン)
+    - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
+    - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
+    - [2.2.9. README.mdファイル作成](#229-readmemdファイル作成)
+    - [2.2.10. 変更をコミットし、CodeCommitへPush](#2210-変更をコミットしcodecommitへpush)
 
 ## 1. はじめに
 
 ### 1.1. ゴール
 
-- AWSサービスを使いこなして、Webサーバーを構築しコンテンツをデプロイを自動化する.
+- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発ができるようになる.
 
     <img src="./images/img.dio.png">
 
-- IaCの開発ができるようになる.
+    |Item|役割|
+    |---|---|
+    |git|CodeCommitとコードをやり取りするためのアプリ|
+    |CodeCommit|コード管理.GithubやGitlabのAWS版|
+    |CfnTemplate|Webサーバを構築するためのCloudFormationTemplateファイル|
+    |Content|Web公開するコンテンツ(html)|
+    |Python(boto3)|boto3: Pythonのモジュールでaws cliのPython版|
+    |Document|EC2で動かすBATファイルのようなもの|
+    |aws sam cli|PythonのモジュールでCloudFormationの拡張版.GUIより早くTry&Errorが可能|
 
 ### 1.2. Iacメリット・デメリット
 
@@ -29,22 +48,28 @@
 - デメリット
   - 学習コスト(時間がかかる)
   - 開発コスト(時間)が高い、覚えなければならないことが沢山
-  - 結局、デメリットの方が大きい
+→ デメリットの方が大きい
 
 ### 1.3. IaCをやる理由
 
 - ITでご飯を食べて行くなら、やったほうがいいです。
 
-  - Docker(K8S) → みんなが大好きボタンぽちぽちじゃないです。
-  - CD/CI       → みんなが大好きボタンぽちぽちじゃないです。
+  - Docker(K8S) → ボタンぽちぽちじゃないです。
+  - CD/CI       → ボタンぽちぽちじゃないです。
   - サーバーレス  → そもそもInfra不要!?。
 
 → 環境定義署と手順書を見ながら手作業でやってた作業を自動化できるように英語にするのがIaCです。
 
-### 1.4. 免責事項
+### 1.4. 表記について
+
+```text
+ps> Powershellを示す
+> おすきなTerminalでどうぞ
+```
+
+### 1.5. 免責事項
 
 本文書の情報については充分な注意を払っておりますが、その内容の正確性等に対して一切保障するものではありません.本文章の利用で発生したいかなる結果について、一切責任を負わないものとします.また、本文書のご利用により、万一、ご利用者様に何かしらの不都合や損害が発生したとしても、責任を負うものではありません.
-
 
 ## 2. 開発環境構築
 
@@ -53,27 +78,123 @@
 - [Python3.9](https://www.python.org/downloads/)
   - [パッケージのインストール必読](https://www.python.jp/install/windows/install.html)
 - [git](https://git-scm.com/)
+  - Git Credential Managerはインストールしないこと.
 - [VisualStuioCode](https://code.visualstudio.com/download)
 
 ### 2.2. 設定
 
-1. `pip`コマンドを実行して、`aws cli`をインストール
+#### 2.2.1. `pip`コマンドを実行して、`aws cli`をインストール
 
-    ```bash
-    python -m pip install pip --upgrade --user
-    python -m pip install awscli --user
-    ```
+```bash
+> python -m pip install pip --upgrade --user
+> python -m pip install awscli --user
+> python -m pip install pipenv --user
+```
 
-2. IAMユーザのアクセスキー・シークレットアクセスキーを発行
+#### 2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行
 
-    <img src="./images/accesskey.png" width="384">
+<img src="./images/accesskey.png" width="384">
 
-3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定
+#### 2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定
 
-    ```bash
-    aws configure
-    AWS Access Key ID : [アクセスキー]
-    AWS Secret Access Key : [シークレットキー]
-    Default region name : ap-northeast-1
-    Default output format : json
-    ```
+```bash
+aws configure
+AWS Access Key ID : [アクセスキー]
+AWS Secret Access Key : [シークレットキー]
+Default region name : [リージョン]
+Default output format : json
+```
+
+#### 2.2.4. CodeCommit(コード管理)レポジトリ作成
+
+```bash
+> aws codecommit create-repository --repository-name [レポジトリ名]
+```
+
+出力例
+
+```bash
+{
+    "repositoryMetadata": {
+        "accountId": "[アカウントID]",
+        "repositoryName": "[レポジトリ名]",
+        "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名]",
+        "cloneUrlSsh": "ssh://git-codecommit.[リージョン].amazonaws.com/v1/repos[レポジトリ名]",
+        "Arn": "arn:aws:codecommit:[リージョン]:[アカウントID]:[レポジトリ名]"
+    }
+}
+```
+
+#### 2.2.5. CodeCommit認証設定
+
+```bash
+> git config --global user.name [YOUR NAME]
+> git config --global user.email [YOUR EMAIL ADDRESS]
+> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].helper" '!aws codecommit credential-helper $@'
+> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].UseHttpPath" true
+```
+
+#### 2.2.6. 作業ディレクトリを作成後、レポジトリ クローン
+
+```bash
+ps> $wkdir = "$env:userprofile/Documents/[フォルダ名]"
+ps> if (!(Test-Path $wkdir)) { New-Item -Path $wkdir -ItemType Directory | Out-Null }
+ps> Set-Location -Path $wkdir
+ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名]
+# Git Credential Managerが表示されたら、「キャンセル」
+ps> Set-Location [レポジトリ名]
+```
+
+#### 2.2.7. Python仮想環境作成
+
+```bash
+> python -m pipenv --python 3.9
+Creating a virtualenv for this project...
+Pipfile: C:\Users\xxxxxxxx\Documents\work\[レポジトリ名]\Pipfile
+Using C:/Users/xxxxxxxx/AppData/Local/Programs/Python/Python39/python.exe (3.9.10) to create virtualenv...
+[====] Creating virtual environment...created virtual environment CPython3.9.10.final.0-64 in 21306ms
+  creator CPython3Windows(dest=C:\Users\xxxxxxxx\.virtualenvs\[レポジトリ名]-wTKRaSAf, clear=False, no_vcs_ignore=False, global=False)
+  seeder FromAppData(download=False, pip=bundle, setuptools=bundle, wheel=bundle, via=copy, app_data_dir=C:\Users\xxxxxxxx\AppData\Local\pypa\virtualenv)
+    added seed packages: pip==22.0.4, setuptools==62.1.0, wheel==0.37.1
+  activators BashActivator,BatchActivator,FishActivator,NushellActivator,PowerShellActivator,PythonActivator
+
+Successfully created virtual environment!
+Virtualenv location: C:\Users\xxxxxxxx\.virtualenvs\m[レポジトリ名]-wTKRaSAf
+Creating a Pipfile for this project...
+```
+
+```bash
+> python -m pipenv install aws-sam-cli
+Installing aws-sam-cli...
+Adding aws-sam-cli to Pipfile's [packages]...
+Installation Succeeded
+Pipfile.lock not found, creating...
+Locking [dev-packages] dependencies...
+Locking [packages] dependencies...
+          Building requirements...
+Resolving dependencies...
+Success!
+Updated Pipfile.lock (dc4449)!
+Installing dependencies from Pipfile.lock (dc4449)...
+  ================================ 1/1 - 00:00:00
+To activate this project's virtualenv, run pipenv shell.
+Alternatively, run a command inside the virtualenv with pipenv run.
+```
+
+#### 2.2.8. VisualStudioCode(以下、VsCode)起動
+
+```bash
+> code .
+```
+
+#### 2.2.9. README.mdファイル作成
+
+`README.md`ファイルを作成し、「# Iac」と入力してください。
+
+#### 2.2.10. 変更をコミットし、CodeCommitへPush
+
+```bash
+> git add .
+> git commit -m 'init commit'
+> git push -u origin master
+```

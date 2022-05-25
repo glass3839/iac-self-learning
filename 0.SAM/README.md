@@ -1,10 +1,8 @@
-# Cloud Formation<!-- omit in toc -->
+# SAM(Serverless Application Model)<!-- omit in toc -->
 
-## 1. VPCを作る
+簡単なテンプレートファイルを作成し、SAMでスタックの作成・削除を実施します.
 
-### 1.1. VPCの設計図(テンプレートファイル)を作る
-
-#### 1.1.1. レポジトリにcfnフォルダを作成し、template.ymlファイルを作成します
+## 1. Create template for SAM
 
 ```bash
 VSCode起動
@@ -53,7 +51,7 @@ cfn> touch template.yml
 
     擬似パラメータ: Googleで[cfn 擬似パラメータ]でリファレンスを検索してください.AWSアカウントやリージョンにしばられないテンプレートファイル作りなどで使います.
 
-#### 1.1.2. VPC作成(スタック作成)
+## 2. Create Stack
 
 ```bash
 cfn> sam build       # cfnフォルダにtemplate.ymlファイルがあれば、Buildしてくれる
@@ -75,9 +73,9 @@ Configuring SAM deploy
         Looking for config file [samconfig.toml] :  Not found
         Setting default arguments for 'sam deploy'
         =========================================
-        Stack Name [sam-app]: miya-stack                # CloudFormation スタック名を入力
-        AWS Region [ap-northeast-1]: ap-northeast-3     # スタックを作成するリージョン名
-        Parameter VpcCidr [10.0.0.0/22]: 10.0.0.0/22    # テンプレートに作成したパラメータ
+        Stack Name [sam-app]: [STACK NAME]              # CloudFormation スタック名を入力
+        AWS Region [ap-northeast-1]:                    # スタックを作成するリージョン名(レポジトリと同じリージョンを指定)
+        Parameter VpcCidr [10.0.0.0/22]:                # テンプレートに作成したパラメータ
         Confirm changes before deploy [y/N]:            # デプロイ前に変更点の確認するか
         Allow SAM CLI IAM role creation [Y/n]:          # SAM CLI から IAMロールを作成することを許可するか
         Capabilities [['CAPABILITY_IAM']]:              # IAM名指定やネストスタックを利用する場合、CAPABILITY_NAMED_IAM、CAPABILITY_AUTO_EXPANDを指定する
@@ -107,3 +105,19 @@ CREATE_COMPLETE            AWS::CloudFormation::Sta   miya-stack                
 
 Successfully created/updated stack - miya-stack in ap-northeast-3
 ```
+
+マネージメントコンソールからスタックが作成されていることを確認してみましょう.
+
+## 3. Delete Stack
+
+```bash
+cfn> sam delete
+Are you sure you want to delete the stack my-stack in the region ap-northeast-1 ? [y/N]: y
+Are you sure you want to delete the folder my-stack in S3 which contains the artifacts? [y/N]: y
+- Deleting S3 object with key my-stack/aec7e9cf2ac98b0463f03cbc8b8c8713.template
+- Deleting Cloudformation stack my-stack
+
+Deleted successfully
+```
+
+マネージメントコンソールからスタックが削除されていることを確認してみましょう.

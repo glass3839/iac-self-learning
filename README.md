@@ -18,8 +18,10 @@
     - [2.2.6. 作業ディレクトリを作成後、レポジトリ クローン](#226-作業ディレクトリを作成後レポジトリ-クローン)
     - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
     - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
-- [3. CloudFormation](#3-cloudformation)
-  - [3.1. VPC](#31-vpc)
+- [3. SAM使い方](#3-sam使い方)
+  - [3.1. SAM専用テンプレートファイル作成](#31-sam専用テンプレートファイル作成)
+  - [3.2. Stack作成](#32-stack作成)
+  - [3.3. Stack削除](#33-stack削除)
 
 ## 1. はじめに
 
@@ -194,6 +196,10 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 > code .
 ```
 
-## 3. CloudFormation
+## 3. [SAM使い方](0.SAM/README.md)
 
-### 3.1. [VPC](./0.CloudFormation/README.md)
+### 3.1. [SAM専用テンプレートファイル作成](0.SAM/README.md#1-create-template-for-sam)
+
+### 3.2. [Stack作成](0.SAM/README.md#2-create-stack)
+
+### 3.3. [Stack削除](0.SAM/README.md#3-delete-stack)

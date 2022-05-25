@@ -4,7 +4,7 @@
 - [1. はじめに](#1-はじめに)
   - [1.1. 目的](#11-目的)
   - [1.2. Iacメリット・デメリット](#12-iacメリットデメリット)
-  - [1.3. それでも、IaCをやる理由](#13-それでもiacをやる理由)
+  - [1.3. IaCを学ぶモチベーション](#13-iacを学ぶモチベーション)
   - [1.4. 表記について](#14-表記について)
   - [1.5. 免責事項](#15-免責事項)
 - [2. 開発環境構築](#2-開発環境構築)
@@ -25,7 +25,7 @@
 
 ### 1.1. 目的
 
-- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発・デバッグ・テストができるようになる.
+- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発・デバッグ・テストができるようになること目的としています.構成やセキュリティ設定等は触れません.
 
     <img src="./images/img.dio.png">
 
@@ -39,7 +39,6 @@
     |Document|EC2で動かすBATファイルのようなもの|
     |aws sam cli|PythonのモジュールでCloudFormationの拡張版.GUIより早くTry&Errorが可能|
 
-
 ### 1.2. Iacメリット・デメリット
 
 - メリット
@@ -51,19 +50,19 @@
   - 開発コスト(時間)が高い、覚えなければならないことが沢山
 → デメリットの方が大きいのでやる意味があるのが？正直、微妙.
 
-### 1.3. それでも、IaCをやる理由
+### 1.3. IaCを学ぶモチベーション
 
-- Docker(K8S) → ボタンぽちぽちじゃないです.
-- CD/CI       → ボタンぽちぽちじゃないです.
+- Docker(K8S) → ボタンぽちぽちじゃなく、CLIです.
+- CD/CI       → ボタンぽちぽちじゃなく、CLIです.
 - サーバーレス  → そもそもInfra不要!?.
 
-とモダンな開発は、GUIじゃないです
+とモダンな開発にコードを書くことは必須です.
 
 - 環境定義署をおこして、
 - 手順書見ながら、
-- スクショを切り貼り
+- 作業証跡のスクショを切り貼り
 
-するが私には面倒・・・。
+するのが面倒・・・。
 
 ### 1.4. 表記について
 
@@ -142,13 +141,12 @@ ps> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/re
 #### 2.2.6. 作業ディレクトリを作成後、レポジトリ クローン
 
 ```bash
-ps> $wkdir = "$env:userprofile/Documents/[フォルダ名]"
+ps> $wkdir = "$env:userprofile/Documents/[フォルダ名]" #[フォルダ名]は作成するフォルダの名前です
 ps> if (!(Test-Path $wkdir)) { New-Item -Path $wkdir -ItemType Directory | Out-Null }
 ps> Set-Location -Path $wkdir
 ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名]
-# Git Credential Managerが表示されたら、「キャンセル」
 ps> Set-Location [レポジトリ名]
-ps> Get-Location # ← ここに表示されるPathがローカルレポジトリと言います.
+ps> (Get-Location).Path # ← ここに表示されるPathがローカルレポジトリと言います.
 ```
 
 #### 2.2.7. Python仮想環境作成

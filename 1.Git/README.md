@@ -10,11 +10,12 @@ VSCode起動
 
 VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
 
-## Git Ignore
+## 1. Git Ignore
 
 `.gitignore`ファイルに管理したくないパスを記載して、レポジトリから除外します.
 
 今回、除外したいもの
+
 - `sam build`で毎度生成されるので`.aws-sam/`フォルダは、管理対象外とします.
 - `sam deploy`で生成される`samconfig.toml`ファイルは、管理対象外とします.
 
@@ -33,25 +34,51 @@ VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動しま�
 
 VsCodeでは、除外ファイル・フォルダはグレー表示されます.
 
-## Stage
+## 2. Stage
 
-変更をCommitするファイルを追加するエリアのこと.ステージングエリアと言うらしいです.
+変更をCommitするファイルをステージングエリアに追加します.
 
  ```bash
- > git add [ファイルパス] # 全てのファイルをステージングエリアに追加する場合は、「.」を指定.
+ > git add . # 「.」はすべてのファイルを意味します.
+ warning: LF will be replaced by CRLF in .gitignore. # 改行コードを置換したメッセージなので無視できます.
  ```
- 
 
-## 1. Git Push
+ ```bash
+> git status
+Changes to be committed: # ステージングエリアにあるファイルが表示されます
+  (use "git rm --cached <file>..." to unstage)
+        new file:   .gitignore
+        new file:   Pipfile
+        new file:   Pipfile.lock
+        new file:   cfn/template.yml
+ ```
 
-先に作成したテンプレートファイルをCodeCommitにPush(Upload)します.
+VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリアにあるファイルを確認できます.ステージングエリアにあるファイルを右クリックし、「変更のステージング解除」でもとに戻すことができます.
 
-Pushする前に、
+(`Ctrl + Shift + E`でエクスプローラが表示されます.)
 
-- `sam build`で毎度生成されるので`.aws-sam/`フォルダは、管理対象外とします.
-- `sam deploy`で生成される`samconfig.toml`ファイルは、管理対象外とします.
+## 3. Git Commit
 
-`.gitignore`ファイルを作成し、`*/.aws-sam`と`*/samconfig.toml`を追記し、管理対象外にします.
+変更・追加したファイルをCodeCommitに登録します.
 
+```bash
+> git commit -m 'init commit'
+ 4 files changed, 601 insertions(+)     
+ create mode 100644 .gitignore
+ create mode 100644 Pipfile
+ create mode 100644 Pipfile.lock        
+ create mode 100644 cfn/template.yml
+```
 
+## 4. Git Push
 
+Commitした内容をCodeCommitにPush(Upload)します.
+
+```bash
+> git branch
+* main       # <- 今いるブランチ名
+
+> git push -u origin [ブランチ名]
+```
+
+マネジメントコンソールから、レポジトリにファイルがアップされているか確認してください.

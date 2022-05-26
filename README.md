@@ -22,11 +22,14 @@
   - [3.1. SAM専用テンプレートファイル作成](#31-sam専用テンプレートファイル作成)
   - [3.2. Stack作成](#32-stack作成)
   - [3.3. Stack削除](#33-stack削除)
-- [Git使い方](#git使い方)
-  - [Git管理除外](#git管理除外)
-  - [Stage](#stage)
-  - [Git Commit](#git-commit)
-  - [Git Push](#git-push)
+- [4. Git使い方](#4-git使い方)
+  - [4.1. Git管理除外](#41-git管理除外)
+  - [4.2. Stage](#42-stage)
+  - [4.3. Git Commit](#43-git-commit)
+  - [4.4. Git Push](#44-git-push)
+  - [4.5. Git Clone](#45-git-clone)
+  - [4.6. Git Branch](#46-git-branch)
+  - [4.7. Pull(Merge) Request](#47-pullmerge-request)
 
 ## 1. はじめに
 
@@ -209,12 +212,19 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 
 ### 3.3. [Stack削除](0.SAM/README.md#3-delete-stack)
 
-## [Git使い方](1.Git/README.md)
+## 4. Git使い方
 
-### [Git管理除外](1.Git/README.md#1-git-ignore)
+### 4.1. [Git管理除外](1.Git/README.md#1-git-ignore)
 
-### [Stage](1.Git/README.md#2-stage)
+### 4.2. [Stage](1.Git/README.md#2-stage)
 
-### [Git Commit](1.Git/README.md#3-git-commit)
+### 4.3. [Git Commit](1.Git/README.md#3-git-commit)
 
-### [Git Push](1.Git/README.md#4-git-push)
+### 4.4. [Git Push](1.Git/README.md#4-git-push)
+
+### 4.5. [Git Clone](1.Git/README.md#5-git-clone)
+
+### 4.6. [Git Branch](1.Git/README.md#6-git-branch)
+
+### 4.7. [Pull(Merge) Request](1.Git/README.md#7-pullmerge-request)
+

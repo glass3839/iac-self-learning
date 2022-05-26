@@ -63,10 +63,10 @@ VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリ�
 
 ```bash
 > git commit -m 'init commit'
- 4 files changed, 601 insertions(+)     
+ 4 files changed, 601 insertions(+)
  create mode 100644 .gitignore
  create mode 100644 Pipfile
- create mode 100644 Pipfile.lock        
+ create mode 100644 Pipfile.lock
  create mode 100644 cfn/template.yml
 ```
 
@@ -79,6 +79,72 @@ Commitした内容をCodeCommitにPush(Upload)します.
 * main       # <- 今いるブランチ名
 
 > git push -u origin [ブランチ名]
+Total 4 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]
+ * [new branch]      main -> main
+Branch 'main' set up to track remote branch 'main' from 'origin'.
 ```
 
 マネジメントコンソールから、レポジトリにファイルがアップされているか確認してください.
+
+## 5. Git Clone
+
+CodeCommitのリモートレポジトリをPCのローカルレポジトリにクローンします.
+
+ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、閉じてください.)
+
+```bash
+> cd [ローカルレポジトリ]
+> python -m pipenv --rm # Python仮想環境削除
+> cd ..
+> rm -rf [レポジトリ名]
+```
+
+クローンするレポジトリのURLを取得します.
+
+- CLI
+
+  ```bash
+  > aws codecommit get-repository --repository-name [レポジトリ名]
+  {
+    "repositoryMetadata": {
+      "accountId": "123456789012",
+      "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]", # クローンURL
+    }
+  }
+  # 1部のみ表示
+  ```
+
+- Gui
+
+  CodeCommit > レポジトリ > [レポジトリ名]
+
+  <img src="../images/codecommit_clone_url.png" width="320">
+
+  でUrlがコピーされます.
+
+
+Git Clone します.
+
+```bash
+> cd [ワークディレクトリ]
+> git clone [クローンURL]
+remote: Counting objects: 5, done.
+Unpacking objects: 100% (5/5), 822 bytes | 137.00 KiB/s, done.
+> cd [レポジトリ名] # <- 慣れないと忘れがちです
+```
+
+Python 仮想環境削除したので再構築します.
+
+```bash
+> python -m pipenv sync
+# Pipfile.lockがあるので、ワンライナーで仮想環境からaws sam cli インストールまでやってくれます.
+```
+
+## 6. Git Branch
+
+他のはセクションで・・・
+
+## 7. Pull(Merge) Request
+
+他のセクションで・・・

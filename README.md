@@ -19,17 +19,28 @@
     - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
     - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
 - [3. SAM使い方](#3-sam使い方)
-  - [3.1. SAM専用テンプレートファイル作成](#31-sam専用テンプレートファイル作成)
-  - [3.2. Stack作成](#32-stack作成)
-  - [3.3. Stack削除](#33-stack削除)
+  - [3.1. SAM用テンプレートファイル作成](#31-sam用テンプレートファイル作成)
+  - [3.2. スタック作成](#32-スタック作成)
+  - [3.3. スタック削除](#33-スタック削除)
 - [4. Git使い方](#4-git使い方)
-  - [4.1. Git管理除外](#41-git管理除外)
+  - [4.1. Git Ignore](#41-git-ignore)
   - [4.2. Stage](#42-stage)
   - [4.3. Git Commit](#43-git-commit)
   - [4.4. Git Push](#44-git-push)
   - [4.5. Git Clone](#45-git-clone)
-  - [4.6. Git Branch](#46-git-branch)
-  - [4.7. Pull(Merge) Request](#47-pullmerge-request)
+  - [4.6. その他](#46-その他)
+- [5. CloudFormationテンプレート構造](#5-cloudformationテンプレート構造)
+  - [5.1. クラウドフォーメーションとは](#51-クラウドフォーメーションとは)
+  - [5.2. テンプレートファイル](#52-テンプレートファイル)
+    - [5.2.1. フォーマット](#521-フォーマット)
+    - [5.2.2. 構造](#522-構造)
+    - [5.2.3. パラメータセクション](#523-パラメータセクション)
+    - [5.2.4. リソースセクション](#524-リソースセクション)
+  - [5.3. 疑似パラメータ](#53-疑似パラメータ)
+  - [5.4. 組み込み関数](#54-組み込み関数)
+- [6. IaCでWebサーバを立てる](#6-iacでwebサーバを立てる)
+  - [6.1. Template方針](#61-template方針)
+  - [6.2. ルートテンプレート作成](#62-ルートテンプレート作成)
 
 ## 1. はじめに
 
@@ -71,8 +82,9 @@
 - 環境定義署をおこして、
 - 手順書見ながら、
 - 作業証跡のスクショを切り貼り
+- スクショと定義書を差異チェック
 
-するのが面倒・・・。
+の手間を軽減できる筈.
 
 ### 1.4. 表記について
 
@@ -206,25 +218,469 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 
 ## 3. SAM使い方
 
-### 3.1. [SAM専用テンプレートファイル作成](0.SAM/README.md#1-create-template-for-sam)
+簡単なテンプレートファイルを作成し、SAMでスタックの作成・削除を実施します.
 
-### 3.2. [Stack作成](0.SAM/README.md#2-create-stack)
+### 3.1. SAM用テンプレートファイル作成
 
-### 3.3. [Stack削除](0.SAM/README.md#3-delete-stack)
+```bash
+VSCode起動
+> cd [ローカルレポジトリ]
+> code .
+```
+
+VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
+
+```bash
+> python -m pipenv shell # Python仮想環境のShellに切り替え
+Launching subshell in virtual environment...
+
+> mkdir cfn
+> cd cfn
+cfn> touch template.yml
+```
+
+- template.yml
+
+    ```yaml
+    AWSTemplateFormatVersion: '2010-09-09'  # 宣言文のようなもの
+    Transform: AWS::Serverless-2016-10-31   # aws sam cliを利用するために必要
+    Description: >                          # 説明文
+        First Cloud Formation
+    Parameters:                             # スタック作成時の入力パラメータ
+      VpcCidr:                              # パラメータ名
+        Description: Cidr block for vpc.    # パラメータ説明文
+        Type: String                        # パラメータ型
+        Default: 10.0.0.0/22                # 初期値
+    Resources:                              # AWSリソースブロック
+      Vpc:                                  # リソース論理名
+        Type: AWS::EC2::VPC                 # リソースの識別
+        Properties:                         # リソースプロパティブロック
+          CidrBlock: !Ref VpcCidr           # 変数 VpcCidrで指定された値
+          Tags:
+          - Key: Name
+            Value: !Ref AWS::StackName      # 擬似パラメータ: スタック名
+    ```
+
+    3行目までは、このような書き方が必要なんだと覚えてください。
+
+    Parameter: Googleで[cfn パラメータ]でリファレンスを検索してください.リスト選択など、入力値のValidation方法などを調べます.
+
+    Resource: Googleで[cfn サービス名(やAWS::EC2::VPC)]でリファレンスを検索してください.プロパティの書き方,必須入力値や戻り値などを調べます.
+
+    擬似パラメータ: Googleで[cfn 擬似パラメータ]でリファレンスを検索してください.AWSアカウントやリージョンにしばられないテンプレートファイル作りなどで使います.
+
+### 3.2. スタック作成
+
+```bash
+cfn> sam build       # cfnフォルダにtemplate.ymlファイルがあれば、Buildしてくれる
+Build Succeeded
+Built Artifacts  : .aws-sam\build
+Built Template   : .aws-sam\build\template.yaml
+Commands you can use next
+=========================
+[*] Validate SAM template: sam validate
+[*] Invoke Function: sam local invoke
+[*] Test Function in the Cloud: sam sync --stack-name {stack-name} --watch
+[*] Deploy: sam deploy --guided
+```
+
+```bash
+cfn> sam deploy -g   # Buildしたテンプレファイルを展開してくれる(初回は、「-g」パラメータ入力が必須)
+Configuring SAM deploy
+======================
+        Looking for config file [samconfig.toml] :  Not found
+        Setting default arguments for 'sam deploy'
+        =========================================
+        Stack Name [sam-app]: [STACK NAME]              # CloudFormation スタック名を入力
+        AWS Region [ap-northeast-1]:                    # スタックを作成するリージョン名(レポジトリと同じリージョンを指定)
+        Parameter VpcCidr [10.0.0.0/22]:                # テンプレートに作成したパラメータ
+        Confirm changes before deploy [y/N]:            # デプロイ前に変更点の確認するか
+        Allow SAM CLI IAM role creation [Y/n]:          # SAM CLI から IAMロールを作成することを許可するか
+        Capabilities [['CAPABILITY_IAM']]:              # IAM名指定やネストスタックを利用する場合、CAPABILITY_NAMED_IAM、CAPABILITY_AUTO_EXPANDを指定する
+        Disable rollback [y/N]:                         # スタック作成に失敗した場合、Rollbackの有効・無効の選択
+        Save arguments to configuration file [Y/n]:     # 入力した値をConfigファイルに保存するか
+        SAM configuration file [samconfig.toml]:        # Configファイル名指定
+        SAM configuration environment [default]:        # Configu環境名指定
+
+CloudFormation stack changeset                          # ChangesetでVPCが追加させることがわかる
+---------------------------------------------------------------------------------------------------------
+Operation                  LogicalResourceId          ResourceType               Replacement
+---------------------------------------------------------------------------------------------------------   
++ Add                      Vpc                        AWS::EC2::VPC              N/A
+---------------------------------------------------------------------------------------------------------
+
+CloudFormation events from stack operations             # スタック作成のログ
+---------------------------------------------------------------------------------------------------------
+ResourceStatus             ResourceType               LogicalResourceId          ResourceStatusReason       
+---------------------------------------------------------------------------------------------------------   
+CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        -
+CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        Resource creation        
+                                                                                 Initiated
+CREATE_COMPLETE            AWS::EC2::VPC              Vpc                        -
+CREATE_COMPLETE            AWS::CloudFormation::Sta   miya-stack                 -
+                           ck
+---------------------------------------------------------------------------------------------------------   
+
+Successfully created/updated stack - miya-stack in ap-northeast-3
+```
+
+マネージメントコンソールからスタックが作成されていることを確認してみましょう.
+
+### 3.3. スタック削除
+
+```bash
+cfn> sam delete
+Are you sure you want to delete the stack my-stack in the region ap-northeast-1 ? [y/N]: y
+Are you sure you want to delete the folder my-stack in S3 which contains the artifacts? [y/N]: y
+- Deleting S3 object with key my-stack/aec7e9cf2ac98b0463f03cbc8b8c8713.template
+- Deleting Cloudformation stack my-stack
+
+Deleted successfully
+```
+
+マネージメントコンソールからスタックが削除されていることを確認してみましょう.
 
 ## 4. Git使い方
 
-### 4.1. [Git管理除外](1.Git/README.md#1-git-ignore)
+テンプレートファイルをCodeCommitを利用して管理します.
 
-### 4.2. [Stage](1.Git/README.md#2-stage)
+```bash
+VSCode起動
+> cd [ローカルレポジトリ]
+> code .
+```
 
-### 4.3. [Git Commit](1.Git/README.md#3-git-commit)
+VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
 
-### 4.4. [Git Push](1.Git/README.md#4-git-push)
+### 4.1. Git Ignore
 
-### 4.5. [Git Clone](1.Git/README.md#5-git-clone)
+`.gitignore`ファイルに管理したくないパスを記載して、レポジトリから除外します.
 
-### 4.6. [Git Branch](1.Git/README.md#6-git-branch)
+今回、除外したいもの
 
-### 4.7. [Pull(Merge) Request](1.Git/README.md#7-pullmerge-request)
+- `sam build`で毎度生成されるので`.aws-sam/`フォルダは、管理対象外とします.
+- `sam deploy`で生成される`samconfig.toml`ファイルは、管理対象外とします.
+
+```bash
+> touch .gitignore
+> echo "*/.aws-sam/" >> .gitignore
+> echo "*/samconfig.toml" >> .gitignore
+```
+
+`.gitignore`ファイルの中身
+
+```text
+*/.aws-sam/
+*/samconfig.toml
+```
+
+VsCodeでは、除外ファイル・フォルダはグレー表示されます.
+
+### 4.2. Stage
+
+変更をCommitするファイルをステージングエリアに追加します.
+
+ ```bash
+ > git add . # 「.」はすべてのファイルを意味します.
+ warning: LF will be replaced by CRLF in .gitignore. # 改行コードを置換したメッセージなので無視できます.
+ ```
+
+ ```bash
+> git status
+Changes to be committed: # ステージングエリアにあるファイルが表示されます
+  (use "git rm --cached <file>..." to unstage)
+        new file:   .gitignore
+        new file:   Pipfile
+        new file:   Pipfile.lock
+        new file:   cfn/template.yml
+ ```
+
+VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリアにあるファイルを確認できます.ステージングエリアにあるファイルを右クリックし、「変更のステージング解除」でもとに戻すことができます.
+
+(`Ctrl + Shift + E`でエクスプローラが表示されます.)
+
+### 4.3. Git Commit
+
+変更・追加したファイルをCodeCommitに登録します.
+
+```bash
+> git commit -m 'init commit'
+ 4 files changed, 601 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 Pipfile
+ create mode 100644 Pipfile.lock
+ create mode 100644 cfn/template.yml
+```
+
+### 4.4. Git Push
+
+Commitした内容をCodeCommitにPush(Upload)します.
+
+```bash
+> git branch
+* main       # <- 今いるブランチ名
+
+> git push -u origin [ブランチ名]
+Total 4 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]
+ * [new branch]      main -> main
+Branch 'main' set up to track remote branch 'main' from 'origin'.
+```
+
+マネジメントコンソールから、レポジトリにファイルがアップされているか確認してください.
+
+### 4.5. Git Clone
+
+CodeCommitのリモートレポジトリをPCのローカルレポジトリにクローンします.
+
+ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、閉じてください.)
+
+```bash
+ps> cd [ローカルレポジトリ]
+ps> python -m pipenv --rm # Python仮想環境削除
+Removing virtualenv...
+ps> cd ..
+ps> Remove-Item [レポジトリ名] -Force -Recurse
+```
+
+クローンするレポジトリのURLを取得します.
+
+- CLI
+
+  ```bash
+  > aws codecommit get-repository --repository-name [レポジトリ名]
+  {
+    "repositoryMetadata": {
+      "accountId": "123456789012",
+      "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]", # クローンURL
+    }
+  }
+  # 1部のみ表示
+  ```
+
+- GUI
+
+  CodeCommit > レポジトリ > [レポジトリ名]
+
+  <img src="./images/codecommit_clone_url.png" width="320">
+
+  でUrlがコピーされます.
+
+Git Clone します.
+
+```bash
+> cd [ワークディレクトリ]
+> git clone [クローンURL]
+remote: Counting objects: 5, done.
+Unpacking objects: 100% (5/5), 822 bytes | 137.00 KiB/s, done.
+> cd [レポジトリ名] # <- 慣れないと忘れがちです
+```
+
+Python 仮想環境削除したので再構築します.
+
+```bash
+> python -m pipenv sync
+Creating a virtualenv for this project...
+All dependencies are now up-to-date!
+```
+
+### 4.6. その他
+
+branch, pull requestは、後ほど.
+
+## 5. CloudFormationテンプレート構造
+
+### 5.1. クラウドフォーメーションとは
+
+Templateファイル(抽象的)からスタック(実体・リソース)を作成します.
+
+同じテンプレートファイルで異なる名前のスタックを作成すると、柴田大知・未崎のような双子関係になります.なので、本番・ステージング環境の構築やBlue＆GreenDeployに活用できます.
+
+### 5.2. テンプレートファイル
+
+#### 5.2.1. フォーマット
+
+Templateファイルは、JSON・YAML形式をサポートしていますが、可読性が良いYAMLを採用します.
+
+Cfnは、[YAML](https://yaml.org/)バージョン1.1の仕様をサポートしていますが、以下の機能は非サポートです.
+
+- binary, omap, pairs, set, timestamp
+- Aliases
+- Hash merges
+  
+#### 5.2.2. 構造
+
+テンプレートのセクション
+
+```yaml
+AWSTemplateFormatVersion: "version date"
+Description:
+  String
+Metadata:
+  template metadata
+Parameters:
+  set of parameters
+Rules:
+  set of rules
+Mappings:
+  set of mappings
+Conditions:
+  set of conditions
+Transform:
+  set of transforms
+Resources:
+  set of resources
+Outputs:
+  set of outputs
+```
+
+- AWSTemplateFormatVersion
+  - テンプレートが準拠している AWS CloudFormation テンプレートバージョン.
+- Description(オプション)
+  - テンプレートの説明文.AWSTemplateFormatVersionセクションの後に記述すること.
+- Metadata(オプション)
+  - テンプレートに関する追加情報を提供するオブジェクト.
+- Parameters(オプション)
+  - スタックを作成または更新する際、テンプレートに渡すことができる値.
+- Rules(オプション)
+  - スタックの作成またはスタックの更新時に、テンプレートに渡されたパラメータまたはパラメータの組み合わせを検証.
+- Mappings(オプション)
+  - キーと関連する値のマッピング.Resources セクションと Outputs セクションで Fn::FindInMap 組み込み関数を使用することで、キーと対応する値を一致させることが可能.
+- Conditions(オプション)
+  - 特定のリソースを作成するか、リソースのプロパティ値の制御など、判断条件を定義.
+- Transform(オプション)
+  - SAMの場合、Transform: AWS::Serverless-2016-10-31.
+- Resources(必須)
+  - スタックリソースとそのプロパティを指定.
+- Outputs(オプション)
+  - スタックの戻り値やパラメータ値を出力.
+
+#### 5.2.3. パラメータセクション
+
+Parametersセクションの書き方
+
+```yaml
+Parameters:
+  LogicalID:
+    Type: DataType
+    Property: Value
+```
+
+- LogicalID:
+  - テンプレート内で一意なID
+
+- Type:
+  - String: 文字列
+  - Number: 整数または浮動小数点
+  - [他](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-properties-type)
+
+- Property:
+  - AllowedPattern: String 型に使用できるパターンを表す正規表現
+  - AllowedValues: ラメーターに許容される一連の値を含む配列
+  - ConstraintDescription: 制約が違反された場合に、制約について説明する文字列
+  - Default: スタックの作成時に値を指定しなかった場合に、テンプレートで使用される値
+  - Description: パラメーターについて説明
+  - MaxLength: String 型に使用できる最大文字数
+  - MinLength: String 型に使用できる最小文字数
+  - MaxValue: Number 型に使用できる数値の最大値
+  - MinValue: Number 型に使用できる数値の最小値
+  - NoEcho: NoEcho 属性を true に設定するとアスタリスク (*****) としてマスクされたパラメータ値を返します
+
+#### 5.2.4. リソースセクション
+
+Resourcesセクションの書き方
+
+```yaml
+Resources:
+  LogicalID:
+    Type: ResourceType
+    Properties:
+      Key: Value
+```
+
+- LogicalID:
+  - テンプレート内で一意なID
+
+- Type:
+  - [ここから探す](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+
+- Properties:
+  - Typeで指定したResourceTypeに従って記述します.
+
+### 5.3. 疑似パラメータ
+
+疑似パラメータとは、事前定義されたパラメータ.
+
+例
+
+```yaml
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/22
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::Region # ← スタックを作成したリージョン名が入る
+```
+
+疑似パラメータ
+
+- AWS::AccountId
+  - スタックが作成されているアカウントの AWS アカウント ID
+- AWS::NotificationARNs
+  - スタックの通知 Amazon リソースネーム (ARN) のリスト.リストから 1 つの ARN を取得するには、Fn::Select を使用
+- AWS::NoValue
+  - Fn::If 組み込み関数の戻り値として指定すると、対応するリソースプロパティを削除
+- AWS::Partition
+  - 標準の AWS リージョンの場合、パーティションは aws
+  - 中国 (北京および寧夏) リージョンのパーティションは aws-cn
+  - AWS GovCloud (US-West) リージョンにあるリソースのパーティションは aws-us-gov
+- AWS::Region
+  - リソースが作成されているリージョンを表す文字列
+- AWS::StackId
+  - スタックの ID
+- AWS::StackName
+  - スタックの名前
+- AWS::URLSuffix
+  - 通常 `amazonaws.com`
+  - 中国 (北京) リージョンのサフィックスは `amazonaws.com.cn`
+
+### 5.4. 組み込み関数
+
+スタックの管理に役立ついくつかの組み込み関数
+
+例
+
+```yaml
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/22
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::Region # パラメータを参照する関数
+      - Key: Name1
+        Value: !Sub ${AWS::AccounId}-vpc # 変数と文字結合
+```
+
+[関数たち](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
+
+## 6. IaCでWebサーバを立てる
+
+### 6.1. Template方針
+
+1. 1ファイル完結
+2. 複数ファイル(NestStack(AWS::CloudFormation::Stack))
+3. 複数ファイル(CrossReference(Export, !ImportValue))
+4. 複数ファイル(ParameterStore(AWS::SSM::Parameter::Value))
+
+方針2で書きます
+
+### 6.2. ルートテンプレート作成
+
+NestStackの親となるテンプレート.親テンプレートが子となるVPC等テンプレートを呼び出し、テンプレート間の値の受け渡しは、子テンプレートのOutputsを利用する.
+
+
 

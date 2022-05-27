@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  My Web Site
+
+Parameters:
+  Env:
+    Type: String
+    Default: stg
+    AllowedValues: [ prd, stg ]       # prd, stg 以外入力不可
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/22
+
+Resources:
+  Vpc:
+    Type: AWS::CloudFormation::Stack    # ネストスタック
+    Properties:
+      TemplateURL: vpc/vpc.yml          # 子スタックのテンプレートファイルパス
+      Parameters:                       # スタックへ値を渡す
+        StackName: !Ref AWS::StackName
+        Env: !Ref Env
+        VpcCidr: !Ref VpcCidr

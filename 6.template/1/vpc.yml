@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:       # 親スタックから受け取るパラメータ
+  StackName:
+    Type: String
+  Env:
+    Type: String
+  VpcCidr:
+    Type: String
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC               # Reference: https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
+    Properties:
+      CidrBlock: !Ref VpcCidr         # String型: パラメータ値を指定
+      EnableDnsHostnames: true        # Boolean型: DNSホスト名を有効
+      EnableDnsSupport: true          # Boolean型: DNS解決を有効
+      InstanceTenancy: default        # String型: dedicated | default | host のいずれか
+      # Ipv4IpamPoolId: String        # 使わないのでコメントアウト
+      # Ipv4NetmaskLength: Integer    # 使わないのでコメントアウト
+      Tags:                         # List of Tag
+        # - Key:                      # Referenceより記入例
+        #   Value:
+        - Key: Name                       # String型: Name Tag
+          Value: !Sub ${StackName}-${Env} # String型: Name Value
+
+Outputs:
+  VpcId:
+    Value: !Ref Vpc                   # Reference: Return value より、Ref LogicalId = returns the ID of the VPC。

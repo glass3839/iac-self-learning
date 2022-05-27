@@ -40,7 +40,8 @@
   - [5.4. 組み込み関数](#54-組み込み関数)
 - [6. IaCでWebサーバを立てる](#6-iacでwebサーバを立てる)
   - [6.1. Template方針](#61-template方針)
-  - [6.2. ルートテンプレート作成](#62-ルートテンプレート作成)
+  - [6.2. ルートテンプレート作成(template.yml)](#62-ルートテンプレート作成templateyml)
+  - [6.3. VPCテンプレート作成(vpc/vpc.yml)](#63-vpcテンプレート作成vpcvpcyml)
 
 ## 1. はじめに
 
@@ -90,7 +91,7 @@
 
 ```text
 ps> Powershellを示す
-> おすきなTerminalでどうぞ
+> Gitbashを示す
 ```
 
 ### 1.5. 免責事項
@@ -436,11 +437,11 @@ CodeCommitのリモートレポジトリをPCのローカルレポジトリに�
 ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、閉じてください.)
 
 ```bash
-ps> cd [ローカルレポジトリ]
-ps> python -m pipenv --rm # Python仮想環境削除
+> cd [ローカルレポジトリ]
+> python -m pipenv --rm # Python仮想環境削除
 Removing virtualenv...
-ps> cd ..
-ps> Remove-Item [レポジトリ名] -Force -Recurse
+> cd ..
+> rm -rf [レポジトリ名]
 ```
 
 クローンするレポジトリのURLを取得します.
@@ -669,18 +670,79 @@ Resources:
 
 ## 6. IaCでWebサーバを立てる
 
+```bash
+VSCode起動
+> cd [ローカルレポジトリ]
+> code .
+```
+
 ### 6.1. Template方針
 
 1. 1ファイル完結
 2. 複数ファイル(NestStack(AWS::CloudFormation::Stack))
 3. 複数ファイル(CrossReference(Export, !ImportValue))
 4. 複数ファイル(ParameterStore(AWS::SSM::Parameter::Value))
+/workspace/iac-self-learning/images/vpc
+特段理由はありませんが、NestStackテンプレートを作成します.
 
-方針2で書きます
+### 6.2. ルートテンプレート作成(template.yml)
 
-### 6.2. ルートテンプレート作成
+NestStackの親となるテンプレート.
 
-NestStackの親となるテンプレート.親テンプレートが子となるVPC等テンプレートを呼び出し、テンプレート間の値の受け渡しは、子テンプレートのOutputsを利用する.
+[cfn/template.yml](6.template/1/template.yml)
 
+### 6.3. VPCテンプレート作成(vpc/vpc.yml)
 
+1. Build範囲
 
+    <img src="images/vpc/vpc.dio.png" width=512>
+
+1. Templateファイル作成
+
+    ```bash
+    > cd cfn
+    cfn> mkdir vpc
+    cfn> touch vpc/vpc.yml
+    ```
+
+    [vpc/vpc.yml](6.template/1/vpc.yml)
+
+1. Deploy
+
+    ```bash
+    cfn> sam build && sam dploy -g
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン名 
+    Parameter Env [stg]: 
+    Parameter VpcCidr [10.0.0.0/22]: 
+    Confirm changes before deploy [y/N]: 
+    Allow SAM CLI IAM role creation [Y/n]: 
+    Disable rollback [y/N]: 
+    Save arguments to configuration file [Y/n]: 
+    SAM configuration file [samconfig.toml]: 
+    SAM configuration environment [default]: 
+
+    # CAPABILITY_AUTO_EXPAND を指定してないのでエラーが発生します.
+    -------------------------------------------------------------------------------------------------------------------
+    ResourceStatus  ResourceType                LogicalResourceId   ResourceStatusReason
+    -------------------------------------------------------------------------------------------------------------------
+    CREATE_FAILED   AWS::CloudFormation::Stack  Vpc                 Requires capabilities : [CAPABILITY_AUTO_EXPAND]
+    -------------------------------------------------------------------------------------------------------------------
+
+    cfn> sam delete --no-prompts  # Stack作成に失敗した場合は、Stackを削除します.
+    ```
+
+    `samconfig.toml`の`capabilities`の設定値を変更します.
+
+    ```bash
+    sed -i 's/capabilities =.*/capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"/g' samconfig.toml
+    # samconfig.tomlの「capabilities =」の行を「capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"」に置換する意味です.
+    ```
+
+    ```toml
+    capabilities = "CAPABILITY_IAM"
+    　↓
+    capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+    ```

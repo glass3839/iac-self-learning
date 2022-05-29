@@ -38,10 +38,15 @@
     - [5.2.4. リソースセクション](#524-リソースセクション)
   - [5.3. 疑似パラメータ](#53-疑似パラメータ)
   - [5.4. 組み込み関数](#54-組み込み関数)
-- [6. IaCでWebサーバを立てる](#6-iacでwebサーバを立てる)
-  - [6.1. Template方針](#61-template方針)
-  - [6.2. ルートテンプレート作成(template.yml)](#62-ルートテンプレート作成templateyml)
-  - [6.3. VPCテンプレート作成(vpc/vpc.yml)](#63-vpcテンプレート作成vpcvpcyml)
+- [6. IaCでEC2を立てる](#6-iacでec2を立てる)
+  - [6.1. スタック参照の種類](#61-スタック参照の種類)
+  - [6.2. VPCテンプレート作成(vpc/vpc.yml)](#62-vpcテンプレート作成vpcvpcyml)
+  - [6.3. EC2テンプレート作成(instance/web.yml)](#63-ec2テンプレート作成instancewebyml)
+- [7. IaCでApacheのセットアップ](#7-iacでapacheのセットアップ)
+  - [7.1. 手動でWebサーバ構築](#71-手動でwebサーバ構築)
+    - [7.1.1. Apacheインストール](#711-apacheインストール)
+    - [7.1.2. Webサイト確認](#712-webサイト確認)
+  - [7.2.](#72)
 
 ## 1. はじめに
 
@@ -91,7 +96,7 @@
 
 ```text
 ps> Powershellを示す
-> Gitbashを示す
+> Gitbashやbashを示す
 ```
 
 ### 1.5. 免責事項
@@ -668,7 +673,7 @@ Resources:
 
 [関数たち](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
 
-## 6. IaCでWebサーバを立てる
+## 6. IaCでEC2を立てる
 
 ```bash
 VSCode起動
@@ -676,73 +681,155 @@ VSCode起動
 > code .
 ```
 
-### 6.1. Template方針
+### 6.1. スタック参照の種類
 
 1. 1ファイル完結
 2. 複数ファイル(NestStack(AWS::CloudFormation::Stack))
 3. 複数ファイル(CrossReference(Export, !ImportValue))
 4. 複数ファイル(ParameterStore(AWS::SSM::Parameter::Value))
-/workspace/iac-self-learning/images/vpc
-特段理由はありませんが、NestStackテンプレートを作成します.
 
-### 6.2. ルートテンプレート作成(template.yml)
+特段理由はありませんが、NestStackでテンプレートを作成します.
 
-NestStackの親となるテンプレート.
-
-[cfn/template.yml](6.template/1/template.yml)
-
-### 6.3. VPCテンプレート作成(vpc/vpc.yml)
+### 6.2. VPCテンプレート作成(vpc/vpc.yml)
 
 1. Build範囲
 
     <img src="images/vpc/vpc.dio.png" width=512>
 
-1. Templateファイル作成
+1. ルートテンプレート作成(template.yml)
+
+    親テンプレート.
+
+    [cfn/template.yml](./6.template/1/template.yml)
+
+1. VPCテンプレートファイル作成
 
     ```bash
-    > cd cfn
     cfn> mkdir vpc
     cfn> touch vpc/vpc.yml
     ```
 
-    [vpc/vpc.yml](6.template/1/vpc.yml)
+    [vpc/vpc.yml](./6.template/1/vpc.yml)
 
 1. Deploy
 
     ```bash
-    cfn> sam build && sam dploy -g
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
     Setting default arguments for 'sam deploy'
     =========================================
     Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン名 
-    Parameter Env [stg]: 
-    Parameter VpcCidr [10.0.0.0/22]: 
-    Confirm changes before deploy [y/N]: 
-    Allow SAM CLI IAM role creation [Y/n]: 
-    Disable rollback [y/N]: 
-    Save arguments to configuration file [Y/n]: 
-    SAM configuration file [samconfig.toml]: 
-    SAM configuration environment [default]: 
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
 
-    # CAPABILITY_AUTO_EXPAND を指定してないのでエラーが発生します.
-    -------------------------------------------------------------------------------------------------------------------
-    ResourceStatus  ResourceType                LogicalResourceId   ResourceStatusReason
-    -------------------------------------------------------------------------------------------------------------------
-    CREATE_FAILED   AWS::CloudFormation::Stack  Vpc                 Requires capabilities : [CAPABILITY_AUTO_EXPAND]
-    -------------------------------------------------------------------------------------------------------------------
-
-    cfn> sam delete --no-prompts  # Stack作成に失敗した場合は、Stackを削除します.
+    Successfully created/updated stack -  スタック名 in リージョン名
     ```
 
-    `samconfig.toml`の`capabilities`の設定値を変更します.
+### 6.3. EC2テンプレート作成(instance/web.yml)
+
+1. Build範囲
+
+    <img src="images/vpc/ec2.dio.png" width=512>
+
+1. ルートテンプレート作成(template.yml)
+
+    親テンプレート.
+
+    [cfn/template.yml](./6.template/2/template.yml)
+
+1. Iamテンプレートファイル作成
+
+    ```bash
+    cfn> mkdir iam
+    cfn> touch iam/iam.yml
+    ```
+
+1. EC2テンプレートファイル作成
+
+    ```bash
+    cfn> mkdir instance
+    cfn> touch instance/web.yml
+    ```
+
+    [instance/web.yml](6.template/2/web.yml)
+
+1. Deploy
+
+    ```bash
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Parameter BuildWeb [yes]:                     # ← ここの値を変えることでEC2のBuild・Terminateをコントロールします.
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack -  スタック名 in リージョン名
+    ```
+
+1. Session Manager 接続
+
+    Session Manager から OS にログインできることを確認してください.
+
+    Session Managerのデフォルトは、`sh`です.`# bash`で使い慣れたTerminalに切り替えができます.
+
+    - Session Manager
+  
+        Managed Console > EC2 > Instance > Connect > Session Manager
+
+## 7. IaCでApacheのセットアップ
+
+CloudFormationで作成できるのは、OSまでです.OSレイア以上のセットアップはShellScriptで行います.
+
+一般的に、Ansibleなどのツールで行うのが一般的ですが、Ansible知らないので力技でセットアップします.
+
+ポイント
+- Shellが何回実行されても同じ結果になるようにすること(冪等性).
+
+### 7.1. 手動でWebサーバ構築
+
+手動でやっていることを、Script化します.
+
+#### 7.1.1. Apacheインストール
+
+[ShellScript](6.template/3/setup.sh)をSessionManagerからWebサーバにログイン、`sudo su -`に切り替えて実行します.
+
+Tag名の値は、環境に合わせて変更してください.
+
+setup.shをコピーし、ターミナルに貼り付けます.
+
+#### 7.1.2. Webサイト確認
+
+1. WebサーバのGlobalIPを確認.(Cfn > スタック > ルートスタック名 > 出力 もしくは、 EC2 インスタンスより)
+2. GoogleChromeにGlobalIPアドレスを入力し、"Test Page"が表示されることを確認してください.
+3. IaCなので、
+    ```bash
+    > curl -v http://xxx.xxx.xxx.xxx
+    ```
+
+### 7.2. 
+
+    <!-- `samconfig.toml`の`capabilities`の設定値を変更します.
 
     ```bash
     sed -i 's/capabilities =.*/capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"/g' samconfig.toml
-    # samconfig.tomlの「capabilities =」の行を「capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"」に置換する意味です.
+    # samconfig.tomlの「capabilities =」文字が含まれる行を「capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"」に置換します.
     ```
 
     ```toml
     capabilities = "CAPABILITY_IAM"
-    　↓
-    capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
-    ```
+      ↓
+    capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND" -->

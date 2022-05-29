@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:       # 親スタックから受け取るパラメータ
+  StackName:
+    Type: String
+  Env:
+    Type: String
+  VpcId:
+    Type: String
+  PubSubnet:
+    Type: String
+  InstanceProfile:
+    Type: String
+
+Mappings:
+  Instance:
+    Common:
+      AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
+      DeviceName: /dev/xvda
+  Web:
+    prd:  # 本番環境の場合のパラメータ
+      VolumeSize: 9
+      InstanceId: t4g.small
+    stg: # ステージング環境の場合のパラメータ
+      VolumeSize: 8
+      InstanceId: t4g.nano
+
+Resources:
+  Web:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LT
+        Version: !GetAtt LT.LatestVersionNumber
+      PropagateTagsToVolumeOnCreation: true
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-${Env}
+  LT:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${StackName}-web
+      LaunchTemplateData:
+        BlockDeviceMappings:
+        - DeviceName: !FindInMap [ Instance, Common, DeviceName ]
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            VolumeSize: !FindInMap [ Web, !Ref Env, VolumeSize ]  # 環境別にパラメータを変える
+            VolumeType: gp3
+        CreditSpecification: 
+          CpuCredits: Unlimited
+        EbsOptimized: true
+        ImageId: !FindInMap [ Instance, Common, AmiId ]
+        InstanceType: !FindInMap [ Web, !Ref Env, InstanceId ]
+        IamInstanceProfile:
+          Arn: !Ref InstanceProfile
+        InstanceMarketOptions:
+          SpotOptions:
+            SpotInstanceType: one-time
+            InstanceInterruptionBehavior: terminate
+          MarketType: spot
+        MetadataOptions:
+          HttpEndpoint: enabled
+          HttpPutResponseHopLimit: 1
+          HttpTokens: required
+          InstanceMetadataTags: enabled
+        NetworkInterfaces:
+        - DeleteOnTermination: true
+          AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: !Select [ 0, !Split [ ',', !Ref PubSubnet ] ]
+          Groups:
+          - !GetAtt Sg.GroupId
+
+  Sg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${StackName}-web
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+      SecurityGroupEgress:
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+      Tags:
+      - Key: Name
+        Value: !Sub ${StackName}-web
+
+Outputs:
+  WebPublicIp:
+    Value: !GetAtt Web.PublicIp

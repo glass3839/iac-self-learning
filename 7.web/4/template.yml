@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  My Web Site
+
+Parameters:
+  Env:
+    Type: String
+    Default: stg
+    AllowedValues: [ prd, stg ]       # prd, stg 以外入力不可
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/22
+    AllowedPattern: ((\d{1,3})\.){3}\d{1,3}/\d{1,2}
+  BuildWeb:
+    Type: String
+    Default: 'yes'
+    AllowedValues: [ 'yes', 'no' ]
+  Distribution:
+    Type: String
+    Default: Amazon
+    AllowedValues: [ Amazon, Ubuntu ]
+  AssociationName:
+    Type: String
+    Default: ssm-apache
+  YumUpdate:
+    Type: String
+    Default: 'false'
+    AllowedValues: [ 'true', 'false' ]
+
+Conditions:
+  IsBuildWeb: !Equals [ !Ref BuildWeb, 'yes' ]
+
+Resources:
+  Vpc:
+    Type: AWS::CloudFormation::Stack    # ネストスタック
+    Properties:
+      TemplateURL: vpc/vpc.yml          # 子スタックのテンプレートファイルパス
+      Parameters:                       # スタックへ値を渡す
+        StackName: !Ref AWS::StackName
+        Env: !Ref Env
+        VpcCidr: !Ref VpcCidr
+  
+  Iam:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: iam/iam.yml
+      Parameters:                       # スタックへ値を渡す
+        StackName: !Ref AWS::StackName
+        Env: !Ref Env
+
+  Web:
+    Condition: IsBuildWeb                                     # BuildWebが'yes': Create、'no': Terminate.
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: instance/web.yml
+      Parameters:
+        StackName: !Ref AWS::StackName
+        Env: !Ref Env
+        VpcId: !GetAtt Vpc.Outputs.VpcId                      # VpcId を 渡す
+        PubSubnet: !GetAtt Vpc.Outputs.PubSubnets             # PublicSubnetId を 渡す
+        InstanceProfile: !GetAtt Iam.Outputs.InstanceProfile  # InstanceProfile Arn を 渡す
+        Distribution: !Ref Distribution
+        AssociationName: !Ref AssociationName
+        YumUpdate: !Ref YumUpdate
+
+Outputs:
+  WebPublicIp:
+    Condition: IsBuildWeb
+    Value: !GetAtt Web.Outputs.WebPublicIp
+  SsmRunCommand:
+    Condition: IsBuildWeb
+    Value: !Join [ '', [ 'COMMANDID=$(aws ssm send-command --instance-ids ', !GetAtt Web.Outputs.WebInstanceId, ' --parameters yumupdate=false,tagname=', !GetAtt Web.Outputs.WebTagName, ' --query "Command.CommandId" --output text --document-name DOCUMENT-NAME)' ]]
+  SsmCommandResult:
+    Condition: IsBuildWeb
+    Value: aws ssm list-command-invocations --command-id ${COMMANDID} --details

@@ -1,6 +1,7 @@
 # IaC Self Learning<!-- omit in toc -->
 
 ## Contents<!-- omit in toc -->
+
 - [1. はじめに](#1-はじめに)
   - [1.1. 目的](#11-目的)
   - [1.2. Iacメリット・デメリット](#12-iacメリットデメリット)
@@ -40,13 +41,18 @@
   - [5.4. 組み込み関数](#54-組み込み関数)
 - [6. IaCでEC2を立てる](#6-iacでec2を立てる)
   - [6.1. スタック参照の種類](#61-スタック参照の種類)
-  - [6.2. VPCテンプレート作成(vpc/vpc.yml)](#62-vpcテンプレート作成vpcvpcyml)
-  - [6.3. EC2テンプレート作成(instance/web.yml)](#63-ec2テンプレート作成instancewebyml)
+  - [6.2. VPCテンプレート作成](#62-vpcテンプレート作成)
+  - [6.3. EC2テンプレート作成](#63-ec2テンプレート作成)
 - [7. IaCでApacheのセットアップ](#7-iacでapacheのセットアップ)
-  - [7.1. 手動でWebサーバ構築](#71-手動でwebサーバ構築)
-    - [7.1.1. Apacheインストール](#711-apacheインストール)
-    - [7.1.2. Webサイト確認](#712-webサイト確認)
-  - [7.2.](#72)
+  - [7.1. Webサーバ構築(ShellScript偏)](#71-webサーバ構築shellscript偏)
+    - [7.1.1. OS/Apacheセットアップ](#711-osapacheセットアップ)
+    - [7.1.2. Webサイト稼働確認](#712-webサイト稼働確認)
+  - [7.2. Webサーバ構築(Cfn偏)](#72-webサーバ構築cfn偏)
+    - [7.2.1. Systems Manager Document](#721-systems-manager-document)
+    - [7.2.2. Systems Manager Document の テスト](#722-systems-manager-document-の-テスト)
+    - [7.2.3. CfnでVPCからWebサイトまでBuild](#723-cfnでvpcからwebサイトまでbuild)
+- [8. CodeCommit(Git)からコンテンツの展開](#8-codecommitgitからコンテンツの展開)
+  - [コンテンツ作成](#コンテンツ作成)
 
 ## 1. はじめに
 
@@ -245,7 +251,7 @@ Launching subshell in virtual environment...
 cfn> touch template.yml
 ```
 
-- template.yml
+- cfn/template.yml
 
     ```yaml
     AWSTemplateFormatVersion: '2010-09-09'  # 宣言文のようなもの
@@ -461,7 +467,7 @@ Removing virtualenv...
       "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]", # クローンURL
     }
   }
-  # 1部のみ表示
+  # 1部だけ表示
   ```
 
 - GUI
@@ -690,28 +696,28 @@ VSCode起動
 
 特段理由はありませんが、NestStackでテンプレートを作成します.
 
-### 6.2. VPCテンプレート作成(vpc/vpc.yml)
+### 6.2. VPCテンプレート作成
 
 1. Build範囲
 
     <img src="images/vpc/vpc.dio.png" width=512>
 
-1. ルートテンプレート作成(template.yml)
+2. ルートテンプレート作成
 
     親テンプレート.
 
     [cfn/template.yml](./6.template/1/template.yml)
 
-1. VPCテンプレートファイル作成
+3. VPCテンプレートファイル作成
 
     ```bash
     cfn> mkdir vpc
     cfn> touch vpc/vpc.yml
     ```
 
-    [vpc/vpc.yml](./6.template/1/vpc.yml)
+    [cfn/vpc/vpc.yml](./6.template/1/vpc.yml)
 
-1. Deploy
+4. Deploy
 
     ```bash
     cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
@@ -731,35 +737,37 @@ VSCode起動
     Successfully created/updated stack -  スタック名 in リージョン名
     ```
 
-### 6.3. EC2テンプレート作成(instance/web.yml)
+### 6.3. EC2テンプレート作成
 
 1. Build範囲
 
     <img src="images/vpc/ec2.dio.png" width=512>
 
-1. ルートテンプレート作成(template.yml)
+2. ルートテンプレート作成
 
     親テンプレート.
 
     [cfn/template.yml](./6.template/2/template.yml)
 
-1. Iamテンプレートファイル作成
+3. Iamテンプレートファイル作成
 
     ```bash
     cfn> mkdir iam
     cfn> touch iam/iam.yml
     ```
 
-1. EC2テンプレートファイル作成
+    [cfn/iam/iam.yml](6.template/2/iam.yml)
+
+4. EC2テンプレートファイル作成
 
     ```bash
     cfn> mkdir instance
     cfn> touch instance/web.yml
     ```
 
-    [instance/web.yml](6.template/2/web.yml)
+    [cfn/instance/web.yml](6.template/2/web.yml)
 
-1. Deploy
+5. Deploy
 
     ```bash
     cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
@@ -780,7 +788,7 @@ VSCode起動
     Successfully created/updated stack -  スタック名 in リージョン名
     ```
 
-1. Session Manager 接続
+6. Session Manager 接続
 
     Session Manager から OS にログインできることを確認してください.
 
@@ -797,39 +805,230 @@ CloudFormationで作成できるのは、OSまでです.OSレイア以上のセ�
 一般的に、Ansibleなどのツールで行うのが一般的ですが、Ansible知らないので力技でセットアップします.
 
 ポイント
+
 - Shellが何回実行されても同じ結果になるようにすること(冪等性).
 
-### 7.1. 手動でWebサーバ構築
+### 7.1. Webサーバ構築(ShellScript偏)
 
-手動でやっていることを、Script化します.
+手動でやっていることを、ShellScript化してWebサーバをセットアップします.
 
-#### 7.1.1. Apacheインストール
+#### 7.1.1. OS/Apacheセットアップ
 
-[ShellScript](6.template/3/setup.sh)をSessionManagerからWebサーバにログイン、`sudo su -`に切り替えて実行します.
+[ShellScript](./7.web/1/setup.sh)の実行.
 
-Tag名の値は、環境に合わせて変更してください.
+SessionManagerからWebサーバにログイン、`sudo su -`に切り替えて実行します.
+
+Tag名(11行目)の値は、環境に合わせて変更してください.
 
 setup.shをコピーし、ターミナルに貼り付けます.
 
-#### 7.1.2. Webサイト確認
+#### 7.1.2. Webサイト稼働確認
 
 1. WebサーバのGlobalIPを確認.(Cfn > スタック > ルートスタック名 > 出力 もしくは、 EC2 インスタンスより)
 2. GoogleChromeにGlobalIPアドレスを入力し、"Test Page"が表示されることを確認してください.
 3. IaCなので、
+
     ```bash
     > curl -v http://xxx.xxx.xxx.xxx
     ```
 
-### 7.2. 
-
-    <!-- `samconfig.toml`の`capabilities`の設定値を変更します.
-
-    ```bash
-    sed -i 's/capabilities =.*/capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"/g' samconfig.toml
-    # samconfig.tomlの「capabilities =」文字が含まれる行を「capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"」に置換します.
+    ```powershell
+    ps> Invoke-WebRequest http://xxx.xxx.xxx.xxx
     ```
 
-    ```toml
-    capabilities = "CAPABILITY_IAM"
-      ↓
-    capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND" -->
+### 7.2. Webサーバ構築(Cfn偏)
+
+ShellScript化できたのでWebサーバをCfnでセットアップします.
+
+#### 7.2.1. Systems Manager Document
+
+Systems Manager Document に 作成したShellScriptをUploadすると、Systems Manager RunCommand や StateManager で OSにログインすることなくShellScriptを実行することできます.
+
+![doc](images/vpc/doc.dio.png)
+
+1. SSM DocumentのWorkディレクトリを作成します
+
+    ```bash
+    > mkdir -p ssm/documents
+    > cd ssm
+    ssm> touch documents/ssm-apache.yml # ssm-apache: SSM Docuementの名前になりますので重複しない名前に変更してください.
+    ssm> touch upload.py
+    ```
+
+    [ssm/documents/ssm-apache.yml](7.web/2/ssm-apache.yml)
+
+    [ssm/upload.py](7.web/2/upload.py)
+
+1. ssm/documents/ssm-apache.yml を SSM Documentにアップロードします.
+
+    ```bash
+    ssm> python upload.py
+    Inf: ssm-apache.yml installed.
+    ```
+
+#### 7.2.2. Systems Manager Document の テスト
+
+1. UbuntuでDocumentを実行した場合のテスト
+
+    UbuntuとCentOSが起動できるようにテンプレートを書き換えます.
+
+    変更箇所は、Diffなどをつかい比較してください.
+
+    [cfn/template.yml](7.web/3/template.yml)
+    [cfn/instance/web.yml](7.web/3/web.yml)
+
+1. Ubuntuを起動
+
+    ```bash
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Parameter BuildWeb [yes]:
+    Parameter Distribution [CentOS]: Ubuntu
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack -  スタック名 in リージョン名
+    ```
+
+    SessionManagerにて
+
+    ```bash
+    > cat /etc/issue
+    Ubuntu xx.xx
+    ```
+
+1. RunCommand実行
+
+    コマンド実行
+
+    ```bash
+    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=[TAG_NAME] --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
+    > aws ssm list-command-invocations --command-id ${COMMANDID} --details
+    {
+        "CommandInvocations": [
+            {
+                "DocumentVersion": "$DEFAULT",
+                "Status": "Success",
+                "StatusDetails": "Success",
+            }
+        ]
+    }
+    一部だけ表示
+    ```
+
+    `Cfn` Outputs, SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
+
+    Systems Manager > Run Command > コマンド履歴 から ログの確認ができます.
+
+1. AmazonLinux2を起動
+
+    ```bash
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Parameter BuildWeb [yes]:
+    Parameter Distribution [Ubuntu]: Amazon
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack -  スタック名 in リージョン名
+    ```
+
+1. RunCommand実行
+
+    コマンド実行
+
+    ```bash
+    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=[TAG_NAME] --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
+    > aws ssm list-command-invocations --command-id ${COMMANDID} --details
+    {
+        "CommandInvocations": [
+            {
+                "DocumentVersion": "$DEFAULT",
+                "Status": "Failed",
+                "StatusDetails": "Failed",
+            }
+        ]
+    }
+    一部だけ表示
+    > curl -v http://GlobalIP
+    ```
+
+    `Cfn` Outputs, SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
+
+    Systems Manager > Run Command > コマンド履歴 から ログの確認ができます.
+
+#### 7.2.3. CfnでVPCからWebサイトまでBuild
+
+SystemsManagerのStateManagerを利用してCfnからWebサイトをセットアップするため、テンプレートを書き換えます.
+
+変更箇所は、Diffなどをつかい比較してください.
+
+[cfn/template.yml](7.web/4/template.yml)
+[cfn/instance/web.yml](7.web/4/web.yml)
+
+1. EC2をTerminate.
+
+    ```bash
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Parameter BuildWeb [yes]: no
+    ```
+
+1. EC2をBuild.
+
+    ```bash
+    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Parameter BuildWeb [yes]:
+    Parameter Distribution [Ubuntu]: Amazon
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack -  スタック名 in リージョン名
+    ```
+
+Systems Manager > ステートマネージャ > アソシエーションID > 実行履歴 > 実行ID > 出力 から ログの確認ができます.
+
+## 8. CodeCommit(Git)からコンテンツの展開
+
+WebサーバにGitをインストール、レポジトリからコンテンツを展開します.
+
+### コンテンツ作成
+
+コンテンツフォルダを作成し、コンテンツを配置します.
+
+```bash
+> mkdir content
+> cd content
+content> mkdir style
+content> touch index.html
+content> touch style/style.css
+```

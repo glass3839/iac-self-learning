@@ -52,7 +52,8 @@
     - [7.2.2. Systems Manager Document の テスト](#722-systems-manager-document-の-テスト)
     - [7.2.3. CfnでVPCからWebサイトまでBuild](#723-cfnでvpcからwebサイトまでbuild)
 - [8. CodeCommit(Git)からコンテンツの展開](#8-codecommitgitからコンテンツの展開)
-  - [コンテンツ作成](#コンテンツ作成)
+  - [8.1. コンテンツ作成と展開用コード修正](#81-コンテンツ作成と展開用コード修正)
+  - [8.1. コンテンツUpload](#81-コンテンツupload)
 
 ## 1. はじめに
 
@@ -1022,14 +1023,55 @@ Systems Manager > ステートマネージャ > アソシエーションID > 実
 
 WebサーバにGitをインストール、レポジトリからコンテンツを展開します.
 
-### コンテンツ作成
+![git](images/vpc/git.dio.png)
 
-コンテンツフォルダを作成し、コンテンツを配置します.
+### 8.1. コンテンツ作成と展開用コード修正
+
+1. コンテンツフォルダを作成し、コンテンツを配置します.
+
+    ```bash
+    > mkdir content
+    > cd content
+    content> mkdir style
+    content> touch index.html
+    content> touch style/style.css
+    ```
+
+    [content/index.html](8.content/1/index.html)
+
+    [content/style/style.css](8.content/1/style/style.css)
+
+1. TemplateにレポジトリParameterを追加します.
+
+    [cfn/template.yml]
+
+1. CodeCommitレポジトリからGit Clone可能になるよう、Policyを追加します.
+
+    [cfn/iam/iam.yml](8.content/1/iam.yml)
+
+1. StateManegerのパラメータを追加します.
+
+    [cfn/instance/web.yml](8.content/1/web.yml)
+
+1. Gitをインストールするよう、Documentを追加します.
+
+    [ssm/documents/ssm-apache.yml](8.content/1/ssm-apache.yml)
+
+    ```bash
+    ssm> python upload.py
+    Inf: ssm-apache.yml updated.
+    ```
+
+### 8.1. コンテンツUpload
+
+CodeCommitにPushします.
 
 ```bash
-> mkdir content
-> cd content
-content> mkdir style
-content> touch index.html
-content> touch style/style.css
+> git add .
+> git commit -m 'first commit'
+> git push -u origin [ブランチ名]
+# > git status
+# On branch [ブランチ名]
 ```
+
+

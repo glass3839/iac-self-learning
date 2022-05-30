@@ -44,10 +44,10 @@
   - [6.2. VPCテンプレート作成](#62-vpcテンプレート作成)
   - [6.3. EC2テンプレート作成](#63-ec2テンプレート作成)
 - [7. IaCでApacheのセットアップ](#7-iacでapacheのセットアップ)
-  - [7.1. Webサーバ構築(ShellScript偏)](#71-webサーバ構築shellscript偏)
+  - [7.1. Webサーバ構築(ShellScript編)](#71-webサーバ構築shellscript編)
     - [7.1.1. OS/Apacheセットアップ](#711-osapacheセットアップ)
     - [7.1.2. Webサイト稼働確認](#712-webサイト稼働確認)
-  - [7.2. Webサーバ構築(Cfn偏)](#72-webサーバ構築cfn偏)
+  - [7.2. Webサーバ構築(Cfn編)](#72-webサーバ構築cfn編)
     - [7.2.1. Systems Manager Document](#721-systems-manager-document)
     - [7.2.2. Systems Manager Document の テスト](#722-systems-manager-document-の-テスト)
     - [7.2.3. CfnでVPCからWebサイトまでBuild](#723-cfnでvpcからwebサイトまでbuild)
@@ -808,7 +808,7 @@ CloudFormationで作成できるのは、OSまでです.OSレイア以上のセ�
 
 - Shellが何回実行されても同じ結果になるようにすること(冪等性).
 
-### 7.1. Webサーバ構築(ShellScript偏)
+### 7.1. Webサーバ構築(ShellScript編)
 
 手動でやっていることを、ShellScript化してWebサーバをセットアップします.
 
@@ -836,7 +836,7 @@ setup.shをコピーし、ターミナルに貼り付けます.
     ps> Invoke-WebRequest http://xxx.xxx.xxx.xxx
     ```
 
-### 7.2. Webサーバ構築(Cfn偏)
+### 7.2. Webサーバ構築(Cfn編)
 
 ShellScript化できたのでWebサーバをCfnでセットアップします.
 
@@ -870,14 +870,15 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
 1. UbuntuでDocumentを実行した場合のテスト
 
-    UbuntuとCentOSが起動できるようにテンプレートを書き換えます.
+    UbuntuがBuildできるようにテンプレートを書き換えます.
 
     変更箇所は、Diffなどをつかい比較してください.
 
     [cfn/template.yml](7.web/3/template.yml)
+
     [cfn/instance/web.yml](7.web/3/web.yml)
 
-1. Ubuntuを起動
+2. Ubuntuを起動
 
     ```bash
     cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
@@ -906,7 +907,7 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
     Ubuntu xx.xx
     ```
 
-1. RunCommand実行
+3. RunCommand実行
 
     コマンド実行
 
@@ -917,8 +918,8 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
         "CommandInvocations": [
             {
                 "DocumentVersion": "$DEFAULT",
-                "Status": "Success",
-                "StatusDetails": "Success",
+                "Status": "Failed",
+                "StatusDetails": "Failed",
             }
         ]
     }
@@ -929,7 +930,7 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
     Systems Manager > Run Command > コマンド履歴 から ログの確認ができます.
 
-1. AmazonLinux2を起動
+4. AmazonLinux2を起動
 
     ```bash
     cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
@@ -951,7 +952,7 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
     Successfully created/updated stack -  スタック名 in リージョン名
     ```
 
-1. RunCommand実行
+5. RunCommand実行
 
     コマンド実行
 
@@ -962,8 +963,8 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
         "CommandInvocations": [
             {
                 "DocumentVersion": "$DEFAULT",
-                "Status": "Failed",
-                "StatusDetails": "Failed",
+                "Status": "Success",
+                "StatusDetails": "Success",
             }
         ]
     }

@@ -53,7 +53,8 @@
     - [7.2.3. CfnでVPCからWebサイトまでBuild](#723-cfnでvpcからwebサイトまでbuild)
 - [8. CodeCommit(Git)からコンテンツの展開](#8-codecommitgitからコンテンツの展開)
   - [8.1. コンテンツ作成と展開用コード修正](#81-コンテンツ作成と展開用コード修正)
-  - [8.1. コンテンツUpload](#81-コンテンツupload)
+  - [8.2. Git Push(作成したコンテンツをCodeCommitにPush)](#82-git-push作成したコンテンツをcodecommitにpush)
+  - [8.3. 再構築](#83-再構築)
 
 ## 1. はじめに
 
@@ -372,19 +373,16 @@ VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動しま�
 今回、除外したいもの
 
 - `sam build`で毎度生成されるので`.aws-sam/`フォルダは、管理対象外とします.
-- `sam deploy`で生成される`samconfig.toml`ファイルは、管理対象外とします.
 
 ```bash
 > touch .gitignore
 > echo "*/.aws-sam/" >> .gitignore
-> echo "*/samconfig.toml" >> .gitignore
 ```
 
 `.gitignore`ファイルの中身
 
 ```text
 */.aws-sam/
-*/samconfig.toml
 ```
 
 VsCodeでは、除外ファイル・フォルダはグレー表示されます.
@@ -1053,7 +1051,7 @@ WebサーバにGitをインストール、レポジトリからコンテンツ�
 
     [cfn/instance/web.yml](8.content/1/web.yml)
 
-1. Gitをインストールするよう、Documentを追加します.
+1. Gitのインストール、コンテンツの展開ができるよう、Documentを修正します.
 
     [ssm/documents/ssm-apache.yml](8.content/1/ssm-apache.yml)
 
@@ -1062,7 +1060,7 @@ WebサーバにGitをインストール、レポジトリからコンテンツ�
     Inf: ssm-apache.yml updated.
     ```
 
-### 8.1. コンテンツUpload
+### 8.2. Git Push(作成したコンテンツをCodeCommitにPush)
 
 CodeCommitにPushします.
 
@@ -1074,4 +1072,34 @@ CodeCommitにPushします.
 # On branch [ブランチ名]
 ```
 
+### 8.3. 再構築
 
+作り直しします.
+
+```bash
+cfn> sam delete --no-prompts
+Deleted successfully
+
+cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]: スタック名
+    AWS Region [ap-northeast-1]: リージョン
+    Parameter Env [stg]:
+    Parameter VpcCidr [10.0.0.0/22]:
+    Parameter BuildWeb [yes]:
+    Parameter Distribution [Amazon]: 
+    Parameter AssociationName []: SSM Document名
+    Parameter YumUpdate [false]: true
+    Parameter CloneUrl []: CodeCommit HTTPSクローン URL
+    Parameter Branch []: 利用するブランチ名
+    Parameter ContentFolder [content]: htmlファイルがあるフォルダ名
+    Confirm changes before deploy [y/N]:
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]:
+    SAM configuration file [samconfig.toml]:
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack -  スタック名 in リージョン名
+```

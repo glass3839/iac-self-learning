@@ -124,12 +124,17 @@ mainSteps:
       if [[ ! $( which git 2>/dev/null ) ]] ; then yum install -y git ; fi
       if [[ -d /tmp/{{repositoryname}} ]] ; then sudo -u ec2-user rm -rf /tmp/{{repositoryname}} ; fi
       DOCUROOT=$(cat /etc/httpd/conf/httpd.conf | grep -E ^DocumentRoot | sed 's/^DocumentRoot\s//g' | sed 's/"//g')
-      sudo -u ec2-user git config --global credential.helper '!aws codecommit credential-helper $@'
-      sudo -u ec2-user git config --global credential.UseHttpPath true
-      sudo -u ec2-user git clone -b {{branch}} {{cloneurl}} {{repositoryname}} ; if [ $? -ne 0 ] ; then exit $? ; fi
-      sudo -u ec2-user sudo cp -rp /tmp/{{repositoryname}}/{{contentfolder}}/* ${DOCUROOT} ; if [ $? -ne 0 ] ; then exit $? ; fi
-      sudo -u ec2-user rm -rf /tmp/{{repositoryname}} ; if [ $? -ne 0 ] ; then exit $? ; fi
-      exit $?
+      sudo -u ec2-user git config --global credential.helper '!aws codecommit credential-helper $@' ; if [ $? -ne 0 ] ; then exit 1 ; fi
+      sudo -u ec2-user git config --global credential.UseHttpPath true ; if [ $? -ne 0 ] ; then exit 1 ; fi
+      sudo -u ec2-user git clone -b {{branch}} {{cloneurl}} /tmp/{{repositoryname}} 2>/dev/null ; if [ $? -ne 0 ] ; then exit 1 ; fi
+      sudo cp -rp /tmp/{{repositoryname}}/{{contentfolder}}/* ${DOCUROOT} ; if [ $? -ne 0 ] ; then exit 1 ; fi
+      rm -rf /tmp/{{repositoryname}} ; if [ $? -ne 0 ] ; then exit 1 ; fi
+
+      if [[ $( curl -v http://localhost 2>/dev/null | grep -E ^\<\!--.*Identifer ) ]] ; then
+        curl -v http://localhost 2>/dev/null
+      else
+        exit 1
+      fi
 # - action: aws:runShellScript
 #   name: "SetupWebContent"
 #   precondition:

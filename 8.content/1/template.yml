@@ -22,21 +22,18 @@ Parameters:
     AllowedValues: [ Amazon, Ubuntu ]
   AssociationName:
     Type: String
-    Default: ssm-apache
   YumUpdate:
     Type: String
     Default: 'false'
     AllowedValues: [ 'true', 'false' ]
   CloneUrl:
     Type: String
-    Default: https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/
     AllowedPattern: ^https://git-codecommit\.[a-z]{2}-[a-z]{1,}-[1-9]{1}\.amazonaws\.com/[a-z0-9]{2,}/[a-z0-9]{1,}/.*
   Branch:
     Type: String
-    Default: main
   ContentFolder:
     Type: String
-    Default: Content
+    Default: content
 
 Conditions:
   IsBuildWeb: !Equals [ !Ref BuildWeb, 'yes' ]
@@ -90,5 +87,3 @@ Outputs:
   SsmCommandResult:
     Condition: IsBuildWeb
     Value: aws ssm list-command-invocations --command-id ${COMMANDID} --details
-  a:
-    Value: !Select [ 5, !Split [ '/', !Ref CloneUrl] ]

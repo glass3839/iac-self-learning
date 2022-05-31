@@ -1,5 +1,7 @@
 # IaC Self Learning<!-- omit in toc -->
 
+つくりこわしができると幸せになれる.
+
 ## Contents<!-- omit in toc -->
 
 - [1. はじめに](#1-はじめに)
@@ -16,7 +18,7 @@
     - [2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定](#223-aws-configureコマンドを実行してアクセスキーシークレットアクセスキーを設定)
     - [2.2.4. CodeCommit(コード管理)レポジトリ作成](#224-codecommitコード管理レポジトリ作成)
     - [2.2.5. CodeCommit認証設定](#225-codecommit認証設定)
-    - [2.2.6. 作業ディレクトリを作成後、レポジトリ クローン](#226-作業ディレクトリを作成後レポジトリ-クローン)
+    - [2.2.6. Git Clone(レポジトリのクローン)](#226-git-cloneレポジトリのクローン)
     - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
     - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
 - [3. SAM使い方](#3-sam使い方)
@@ -40,7 +42,7 @@
   - [5.3. 疑似パラメータ](#53-疑似パラメータ)
   - [5.4. 組み込み関数](#54-組み込み関数)
 - [6. IaCでEC2を立てる](#6-iacでec2を立てる)
-  - [6.1. スタック参照の種類](#61-スタック参照の種類)
+  - [6.1. Templateファイル設計パターン](#61-templateファイル設計パターン)
   - [6.2. VPCテンプレート作成](#62-vpcテンプレート作成)
   - [6.3. EC2テンプレート作成](#63-ec2テンプレート作成)
 - [7. IaCでApacheのセットアップ](#7-iacでapacheのセットアップ)
@@ -50,7 +52,7 @@
   - [7.2. Webサーバ構築(Cfn編)](#72-webサーバ構築cfn編)
     - [7.2.1. Systems Manager Document](#721-systems-manager-document)
     - [7.2.2. Systems Manager Document の テスト](#722-systems-manager-document-の-テスト)
-    - [7.2.3. CfnでVPCからWebサイトまでBuild](#723-cfnでvpcからwebサイトまでbuild)
+    - [7.2.3. SystemsManage StateManager](#723-systemsmanage-statemanager)
 - [8. CodeCommit(Git)からコンテンツの展開](#8-codecommitgitからコンテンツの展開)
   - [8.1. コンテンツ作成と展開用コード修正](#81-コンテンツ作成と展開用コード修正)
   - [8.2. Git Push(作成したコンテンツをCodeCommitにPush)](#82-git-push作成したコンテンツをcodecommitにpush)
@@ -60,13 +62,13 @@
 
 ### 1.1. 目的
 
-- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発・デバッグ・テストができるようになること目的としています.構成やセキュリティ設定等は触れません.
+- AWSサービスを使い、単純構成のWebサーバーを構築、デプロイを自動化し基本的なことを学び、IaCの開発・デバッグ・テストができるようになること目的としています.構成やセキュリティ,CD/CI等には触れません.
 
     <img src="./images/img.dio.png">
 
     |Item|役割|
     |---|---|
-    |git|CodeCommitとコードをやり取りするためのアプリ|
+    |git|CodeCommitと開発したコードをやり取りするためのアプリ|
     |CodeCommit|コード管理.GithubやGitlabのAWS版|
     |CfnTemplate|Webサーバを構築するためのCloudFormationTemplateファイル|
     |Content|Web公開するコンテンツ(html)|
@@ -105,6 +107,10 @@
 ```text
 ps> Powershellを示す
 > Gitbashやbashを示す
+
+プロンプトの文字はフォルダを示す.
+> : work directory
+cfn> : work directory/cfn
 ```
 
 ### 1.5. 免責事項
@@ -113,17 +119,27 @@ ps> Powershellを示す
 
 ## 2. 開発環境構築
 
+開発端末
+
+- Windows10
+
 ### 2.1. Require
+
+下記、3つのソフトをインストールしてください.
 
 - [Python3.9](https://www.python.org/downloads/)
   - [パッケージのインストール必読](https://www.python.jp/install/windows/install.html)
 - [git](https://git-scm.com/)
   - Git Credential Managerはインストールしないこと.
-- [VisualStuioCode](https://code.visualstudio.com/download)
+- [VisualStudioCode](https://code.visualstudio.com/download)
 
 ### 2.2. 設定
 
 #### 2.2.1. `pip`コマンドを実行して、`aws cli`をインストール
+
+Pythonのパッケージを管理するものが`pip`です.
+
+`pip`でpipをUpgrade、awscli、pipenvをインストールします.
 
 ```bash
 ps> python -m pip install pip --upgrade --user
@@ -133,12 +149,12 @@ ps> python -m pip install pipenv --user
 
 #### 2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行
 
-<img src="./images/accesskey.png" width="384">
+<img src="./images/20.accesskey.png" width="384">
 
 #### 2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定
 
 ```bash
-aws configure
+ps> aws configure
 AWS Access Key ID : [アクセスキー]
 AWS Secret Access Key : [シークレットキー]
 Default region name : [リージョン]
@@ -146,6 +162,10 @@ Default output format : json
 ```
 
 #### 2.2.4. CodeCommit(コード管理)レポジトリ作成
+
+`aws codecommit`でレポジトリを作成します.
+
+`レポジトリ`とはファイル(コード)や変更履歴を保存しておくための場所だと思ってください.
 
 ```bash
 ps> aws codecommit create-repository --repository-name [レポジトリ名]
@@ -165,6 +185,8 @@ ps> aws codecommit create-repository --repository-name [レポジトリ名]
 }
 ```
 
+レポジトリは、`aws configure`で設定したリージョンに作成されます.
+
 #### 2.2.5. CodeCommit認証設定
 
 ```bash
@@ -174,22 +196,47 @@ ps> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/re
 ps> git config --global "credential.https://git-codecommit.*.amazonaws.com/v1/repos/[リポジトリ名].UseHttpPath" true
 ```
 
-#### 2.2.6. 作業ディレクトリを作成後、レポジトリ クローン
+```text
+git commit(変更確定)するために必要な設定です.
+git config --global user.name [YOUR NAME]
+git config --global user.email [YOUR EMAIL ADDRESS]
+ps> git config --global --edit # Configファイルを直接編集(viです.)
+
+git config --global "credential・・・・"は、CodeCommitの認証にアクセスキー・シークレットキーを用いるために必要です.
+Git Credential Manager を インストールしちゃうと、15分後ぐらいに認証が通らなくなります.
+  コンパネ > 資格情報 > Windows資格情報 から、対象のCodeCommitを削除して一時認証情報を削除します.
+```
+
+#### 2.2.6. Git Clone(レポジトリのクローン)
+
+適当な場所にフォルダを作成し、レポジトリのクローンをつくります.
 
 ```bash
-ps> $wkdir = "$env:userprofile/Documents/[フォルダ名]" #[フォルダ名]は作成するフォルダの名前です
-ps> if (!(Test-Path $wkdir)) { New-Item -Path $wkdir -ItemType Directory | Out-Null }
-ps> Set-Location -Path $wkdir
-ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名]
-ps> Set-Location [レポジトリ名]
-ps> (Get-Location).Path # ← ここに表示されるPathがローカルレポジトリと言います.
+ps> $wkdir = "$env:userprofile/Documents/[フォルダ名]" #[フォルダ名]は作成するフォルダの名前
+ps> if (!(Test-Path $wkdir)) { New-Item -Path $wkdir -ItemType Directory | Out-Null } # フォルダがなければ、フォルダを作成
+ps> Set-Location -Path $wkdir # フォルダに異動
+ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名] # レポジトリのクローンをPCに作成
+Cloning into [レポジトリ名]...
+warning: You appear to have cloned an empty repository.
+ps> Set-Location [レポジトリ名] # レポジトリ名のフォルダが作成される
+ps> (Get-Location).Path # ← ここに表示されるPathが[ローカルレポジトリ]と言います
 ```
+
+git clone の URLは、以下のいずれかの方法で確認できます.
+
+- 手順2.2.4の`cloneUrlHttp`
+- `aws codecommit get-repository --repository-name [レポジトリ名] --query repositoryMetadata.cloneUrlHttp --output text`
+- ManagementConsole
 
 #### 2.2.7. Python仮想環境作成
 
+1台のパソコンでPython3.10, 3.8、きれいな環境(モジュールがない)から開発したくなります.
+
+pipenvをつかい、フォルダ単位でPythonの仮想環境を作成します.
+
 ```bash
 > cd [ローカルレポジトリ]
-> python -m pipenv --python 3.9
+> python -m pipenv --python 3.9 # [ローカルレポジトリ]にPython3.9をインストール
 Creating a virtualenv for this project...
 Pipfile: C:\Users\xxxxxxxx\Documents\work\[レポジトリ名]\Pipfile
 Using C:/Users/xxxxxxxx/AppData/Local/Programs/Python/Python39/python.exe (3.9.10) to create virtualenv...
@@ -200,13 +247,13 @@ Using C:/Users/xxxxxxxx/AppData/Local/Programs/Python/Python39/python.exe (3.9.1
   activators BashActivator,BatchActivator,FishActivator,NushellActivator,PowerShellActivator,PythonActivator
 
 Successfully created virtual environment!
-Virtualenv location: C:\Users\xxxxxxxx\.virtualenvs\m[レポジトリ名]-wTKRaSAf
+Virtualenv location: C:\Users\xxxxxxxx\.virtualenvs\[レポジトリ名]-*******
 Creating a Pipfile for this project...
 ```
 
 ```bash
 > cd [ローカルレポジトリ]
-> python -m pipenv install aws-sam-cli
+> python -m pipenv install aws-sam-cli  # [ローカルレポジトリ]に aws-sam-cli をインストール
 Installing aws-sam-cli...
 Adding aws-sam-cli to Pipfile's [packages]...
 Installation Succeeded
@@ -225,10 +272,14 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 
 #### 2.2.8. VisualStudioCode(以下、VsCode)起動
 
+CLIでCloudFormationTemplateを作成するのは無理なので、VsCodeを使います.
+
 ```bash
 > cd [ローカルレポジトリ]
 > code .
 ```
+
+VsCodeを起動し、ファイル > フォルダを開く と同じです.
 
 ## 3. SAM使い方
 
@@ -236,16 +287,10 @@ Alternatively, run a command inside the virtualenv with pipenv run.
 
 ### 3.1. SAM用テンプレートファイル作成
 
-```bash
-VSCode起動
-> cd [ローカルレポジトリ]
-> code .
-```
-
 VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
 
 ```bash
-> python -m pipenv shell # Python仮想環境のShellに切り替え
+> python -m pipenv shell # Python仮想環境のShellに入る
 Launching subshell in virtual environment...
 
 > mkdir cfn
@@ -253,7 +298,7 @@ Launching subshell in virtual environment...
 cfn> touch template.yml
 ```
 
-- cfn/template.yml
+- cfn/template.yml に コピーします.
 
     ```yaml
     AWSTemplateFormatVersion: '2010-09-09'  # 宣言文のようなもの
@@ -277,13 +322,15 @@ cfn> touch template.yml
 
     3行目までは、このような書き方が必要なんだと覚えてください。
 
-    Parameter: Googleで[cfn パラメータ]でリファレンスを検索してください.リスト選択など、入力値のValidation方法などを調べます.
+  - Parameter: Googleで[cfn パラメータ]でリファレンスを検索してください.リスト選択など、入力値のValidation方法などを調べます.
 
-    Resource: Googleで[cfn サービス名(やAWS::EC2::VPC)]でリファレンスを検索してください.プロパティの書き方,必須入力値や戻り値などを調べます.
+  - Resource: Googleで[cfn サービス名(やAWS::EC2::VPC)]でリファレンスを検索してください.プロパティの書き方,必須入力値や戻り値などを調べます.
 
-    擬似パラメータ: Googleで[cfn 擬似パラメータ]でリファレンスを検索してください.AWSアカウントやリージョンにしばられないテンプレートファイル作りなどで使います.
+  - 擬似パラメータ: Googleで[cfn 擬似パラメータ]でリファレンスを検索してください.AWSアカウントやリージョンにしばられないテンプレートファイル作りなどで使います.
 
 ### 3.2. スタック作成
+
+`sam build`でtemplate.ymlをCloudFormationにUploadされるファイルが.aws-samに作成されます.
 
 ```bash
 cfn> sam build       # cfnフォルダにtemplate.ymlファイルがあれば、Buildしてくれる
@@ -298,6 +345,8 @@ Commands you can use next
 [*] Deploy: sam deploy --guided
 ```
 
+`sam deploy -g`でスタックを作成(AWSリソース作成)します.`samconfig.toml`に設定情報が書き込まれます.
+
 ```bash
 cfn> sam deploy -g   # Buildしたテンプレファイルを展開してくれる(初回は、「-g」パラメータ入力が必須)
 Configuring SAM deploy
@@ -305,12 +354,11 @@ Configuring SAM deploy
         Looking for config file [samconfig.toml] :  Not found
         Setting default arguments for 'sam deploy'
         =========================================
-        Stack Name [sam-app]: [STACK NAME]              # CloudFormation スタック名を入力
-        AWS Region [ap-northeast-1]:                    # スタックを作成するリージョン名(レポジトリと同じリージョンを指定)
+        Stack Name [sam-app]: [スタック名]              # CloudFormation スタック名を入力
+        AWS Region [ap-northeast-1]:                    # スタックを作成するリージョン
         Parameter VpcCidr [10.0.0.0/22]:                # テンプレートに作成したパラメータ
         Confirm changes before deploy [y/N]:            # デプロイ前に変更点の確認するか
         Allow SAM CLI IAM role creation [Y/n]:          # SAM CLI から IAMロールを作成することを許可するか
-        Capabilities [['CAPABILITY_IAM']]:              # IAM名指定やネストスタックを利用する場合、CAPABILITY_NAMED_IAM、CAPABILITY_AUTO_EXPANDを指定する
         Disable rollback [y/N]:                         # スタック作成に失敗した場合、Rollbackの有効・無効の選択
         Save arguments to configuration file [Y/n]:     # 入力した値をConfigファイルに保存するか
         SAM configuration file [samconfig.toml]:        # Configファイル名指定
@@ -342,6 +390,8 @@ Successfully created/updated stack - miya-stack in ap-northeast-3
 
 ### 3.3. スタック削除
 
+`sam delete`で`samconfig.toml`に記述されているスタックを削除します.s
+
 ```bash
 cfn> sam delete
 Are you sure you want to delete the stack my-stack in the region ap-northeast-1 ? [y/N]: y
@@ -357,14 +407,6 @@ Deleted successfully
 ## 4. Git使い方
 
 テンプレートファイルをCodeCommitを利用して管理します.
-
-```bash
-VSCode起動
-> cd [ローカルレポジトリ]
-> code .
-```
-
-VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
 
 ### 4.1. Git Ignore
 
@@ -398,11 +440,12 @@ VsCodeでは、除外ファイル・フォルダはグレー表示されます.
 
  ```bash
 > git status
-Changes to be committed: # ステージングエリアにあるファイルが表示されます
+Changes to be committed:
   (use "git rm --cached <file>..." to unstage)
         new file:   .gitignore
         new file:   Pipfile
         new file:   Pipfile.lock
+        new file:   cfn/samconfig.toml
         new file:   cfn/template.yml
  ```
 
@@ -412,20 +455,25 @@ VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリ�
 
 ### 4.3. Git Commit
 
-変更・追加したファイルをCodeCommitに登録します.
+変更・追加したファイルをCommitします.
 
 ```bash
 > git commit -m 'init commit'
- 4 files changed, 601 insertions(+)
+ 5 files changed, 611 insertions(+)
  create mode 100644 .gitignore
  create mode 100644 Pipfile
  create mode 100644 Pipfile.lock
+ create mode 100644 cfn/samconfig.toml
  create mode 100644 cfn/template.yml
 ```
 
 ### 4.4. Git Push
 
-Commitした内容をCodeCommitにPush(Upload)します.
+Commitした内容をCodeCommitにPushします.
+
+`git branch`でブランチ名を確認します.
+
+`git push`でリモートレポジトリにPushします.
 
 ```bash
 > git branch
@@ -444,7 +492,7 @@ Branch 'main' set up to track remote branch 'main' from 'origin'.
 
 CodeCommitのリモートレポジトリをPCのローカルレポジトリにクローンします.
 
-ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、閉じてください.)
+1. ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、VsCodeを閉じてください.)
 
 ```bash
 > cd [ローカルレポジトリ]
@@ -511,7 +559,7 @@ Templateファイル(抽象的)からスタック(実体・リソース)を作�
 
 #### 5.2.1. フォーマット
 
-Templateファイルは、JSON・YAML形式をサポートしていますが、可読性が良いYAMLを採用します.
+Templateファイルは、JSON・YAML形式をサポートしていますが、可読性が良いYAMLを使用します.
 
 Cfnは、[YAML](https://yaml.org/)バージョン1.1の仕様をサポートしていますが、以下の機能は非サポートです.
 
@@ -583,7 +631,7 @@ Parameters:
 - Type:
   - String: 文字列
   - Number: 整数または浮動小数点
-  - [他](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-properties-type)
+  - [その他](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html#parameters-section-structure-properties-type)
 
 - Property:
   - AllowedPattern: String 型に使用できるパターンを表す正規表現
@@ -680,34 +728,60 @@ Resources:
 
 ## 6. IaCでEC2を立てる
 
+不要なリソースもなにかの参考になればという考えでTemplateファイルに記述しています.
+
 ```bash
 VSCode起動
 > cd [ローカルレポジトリ]
 > code .
 ```
 
-### 6.1. スタック参照の種類
+### 6.1. Templateファイル設計パターン
 
-1. 1ファイル完結
-2. 複数ファイル(NestStack(AWS::CloudFormation::Stack))
-3. 複数ファイル(CrossReference(Export, !ImportValue))
-4. 複数ファイル(ParameterStore(AWS::SSM::Parameter::Value))
+1. 単一のファイル
+2. NestStack
+3. CrossReference
+4. ParameterStore
 
-特段理由はありませんが、NestStackでテンプレートを作成します.
+NestStackでテンプレートを作成します.(AWSリソースがReplaceされるか？されないか？わからないので検証以外はお勧めしません.)
 
 ### 6.2. VPCテンプレート作成
 
 1. Build範囲
 
-    <img src="images/vpc/vpc.dio.png" width=512>
+    <img src="images/60.vpc.dio.png" width=512>
 
-2. ルートテンプレート作成
+1. ルートテンプレート作成
 
     親テンプレート.
 
+    template.ymlファイルを書き換えます.
+
     [cfn/template.yml](./6.template/1/template.yml)
 
-3. VPCテンプレートファイル作成
+    ```yml
+    Parameters:                               # Parameterセクション
+      Env:
+        Type: String
+        Default: stg
+        AllowedValues: [ prd, stg ]           # 環境を指定(prd, stg以外入力不可)
+      VpcCidr:
+        Type: String
+        Default: 10.0.0.0/22                  # VpcCidrのデフォルトの値
+      Resources:
+        Vpc:
+          Type: AWS::CloudFormation::Stack    # ネストスタック
+          Properties:
+            TemplateURL: vpc/vpc.yml          # 子スタックのテンプレートファイルパス
+            Parameters:                       # vpc.yml スタックへ渡すパラメータ
+              StackName: !Ref AWS::StackName
+              Env: !Ref Env
+              VpcCidr: !Ref VpcCidr
+    ```
+
+1. VPCテンプレートファイル作成
+
+    VPC用テンプレートファイルを作成します.
 
     ```bash
     cfn> mkdir vpc
@@ -716,7 +790,11 @@ VSCode起動
 
     [cfn/vpc/vpc.yml](./6.template/1/vpc.yml)
 
-4. Deploy
+1. Deploy
+
+    `sam build && sam deploy -g`でVPCを作成します.
+
+    CAPABILITY_AUTO_EXPAND: NestStackに必要な値です.
 
     ```bash
     cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
@@ -724,7 +802,7 @@ VSCode起動
     =========================================
     Stack Name [sam-app]: スタック名
     AWS Region [ap-northeast-1]: リージョン
-    Parameter Env [stg]:
+    Parameter Env [stg]: stg
     Parameter VpcCidr [10.0.0.0/22]:
     Confirm changes before deploy [y/N]:
     Allow SAM CLI IAM role creation [Y/n]:
@@ -740,15 +818,19 @@ VSCode起動
 
 1. Build範囲
 
-    <img src="images/vpc/ec2.dio.png" width=512>
+    <img src="images/61.ec2.dio.png" width=512>
 
 2. ルートテンプレート作成
 
     親テンプレート.
 
+    IAM、EC2のテンプレートファイルをコールするため、template.ymlファイルを書き換えます.
+
     [cfn/template.yml](./6.template/2/template.yml)
 
 3. Iamテンプレートファイル作成
+
+    IAM用テンプレートファイルを作成します.
 
     ```bash
     cfn> mkdir iam
@@ -759,6 +841,8 @@ VSCode起動
 
 4. EC2テンプレートファイル作成
 
+    EC2用テンプレートファイルを作成します.
+
     ```bash
     cfn> mkdir instance
     cfn> touch instance/web.yml
@@ -768,15 +852,19 @@ VSCode起動
 
 5. Deploy
 
+    `sam build && sam deploy -g`でIAMとEC2を作成します.
+
+    `--capabilities`は、`samconfig.toml`に保存されている筈なので不要です.
+
     ```bash
-    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    cfn> sam build && sam deploy
     Setting default arguments for 'sam deploy'
     =========================================
-    Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]:
     Parameter Env [stg]:
     Parameter VpcCidr [10.0.0.0/22]:
-    Parameter BuildWeb [yes]:                     # ← ここの値を変えることでEC2のBuild・Terminateをコントロールします.
+    Parameter BuildWeb [yes]: yes       # ← ここの値を変えることでEC2のBuild・Terminateをコントロールします.
     Confirm changes before deploy [y/N]:
     Allow SAM CLI IAM role creation [Y/n]:
     Disable rollback [y/N]:
@@ -791,11 +879,11 @@ VSCode起動
 
     Session Manager から OS にログインできることを確認してください.
 
-    Session Managerのデフォルトは、`sh`です.`# bash`で使い慣れたTerminalに切り替えができます.
-
-    - Session Manager
+   - Session Manager
   
-        Managed Console > EC2 > Instance > Connect > Session Manager
+        Managed Console > EC2 > インスタンス > 接続 > Session Manager > 接続
+
+    Session Managerのデフォルトは、`sh`です.`# bash`で使い慣れたTerminalに切り替えができます.
 
 ## 7. IaCでApacheのセットアップ
 
@@ -819,7 +907,7 @@ SessionManagerからWebサーバにログイン、`sudo su -`に切り替えて�
 
 Tag名(11行目)の値は、環境に合わせて変更してください.
 
-setup.shをコピーし、ターミナルに貼り付けます.
+[ShellScript](./7.web/1/setup.sh)をコピーし、ターミナルに貼り付けます.
 
 #### 7.1.2. Webサイト稼働確認
 
@@ -841,11 +929,15 @@ ShellScript化できたのでWebサーバをCfnでセットアップします.
 
 #### 7.2.1. Systems Manager Document
 
-Systems Manager Document に 作成したShellScriptをUploadすると、Systems Manager RunCommand や StateManager で OSにログインすることなくShellScriptを実行することできます.
+Systems Manager Document に作成したShellScriptをUploadします.
 
-![doc](images/vpc/doc.dio.png)
+RunCommand や StateManager で OSにログインすることなくWebのセットアップを実現できます.
 
-1. SSM DocumentのWorkディレクトリを作成します
+![doc](images/62.doc.dio.png)
+
+CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします.
+
+1. SSM DocumentのWorkディレクトリを作成します.
 
     ```bash
     > mkdir -p ssm/documents
@@ -854,11 +946,80 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
     ssm> touch upload.py
     ```
 
+    それぞれのファイルにコピーしてください.
+
     [ssm/documents/ssm-apache.yml](7.web/2/ssm-apache.yml)
+
+    ```yml
+    parameters:       # パラメータセクション
+      yumupdate:      # yum update する/しない フラグ
+        type: String
+        default: 'false'
+        description: "(Option) yum update flag"
+        allowedValues: [ 'true', 'false' ]
+      tagname:        # Tagを利用した識別子
+        type: String
+        default: ''
+        description: "(Required) ec2 tag name"
+    mainSteps:                      # 処理
+      - action: aws:runShellScript  # aws提供のrunShellScriptを利用
+        name: IsAmzLinux2           # ステップ名
+        precondition:               # Windowsだと動かないように制御
+          StringEquals:
+          - platformType
+          - Linux
+        inputs:
+          onFailure: exit           # exit 0 以外は、処理中断
+          runCommand:               # コマンド
+          - |
+            #!/bin/bash
+    ```
 
     [ssm/upload.py](7.web/2/upload.py)
 
-1. ssm/documents/ssm-apache.yml を SSM Documentにアップロードします.
+    ```python
+    ''' 利用する外部モジュール '''
+    import boto3 # AWS CLIのようなもの
+    import os                 # ファイル操作
+    from pathlib import Path  # ファイル操作など
+    import hashlib  # Ssm Documentの記述内容を比較するのに利用
+    from botocore.exceptions import ClientError # Boto3のエラーハンドリング
+
+    ssm = boto3.client('ssm') # ssmクラス https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ssm.html
+
+    current_dir       = Path(__file__).parent             # 本ファイルのディレクトリパス
+    ssm_document_dir  = current_dir.joinpath('documents') # current_dir / documents のこと
+    document_files    = os.listdir(ssm_document_dir)      # current_dir / documents のファイルリスト(documentsにフォルダつくらないで.)
+
+    for d in document_files:                  # ファイルの数分Loop
+      document_name = os.path.splitext(d)[0]  # Ssm Documentの名前を、ファイル名(拡張子なし)と定義
+      try:
+        with open(ssm_document_dir.joinpath(d), encoding='utf-8') as f: # ファイルをUTF8で開く
+          # DocumentにUpload
+          content       = f.read() # ファイルを読取り
+          content_hash  = hashlib.sha256(content.encode()).hexdigest()  # ファイルのHash値
+          ssm.create_document(Name=document_name, DocumentType='Command', DocumentFormat='YAML', Content=content) # SsmDocumentsにScriptをアップ
+      except ClientError as e:
+        if e.response['Error']['Code'] == 'DocumentAlreadyExists':
+          # 同名Documentが存在ずる場合、コンテンツ内容を比較. 差分あり:更新、差分なし:スキップ.
+          document = ssm.describe_document(Name=document_name)['Document']  # 既存SsmDocumentの情報収集
+          document_version = document['DocumentVersion']                    # 既存SsmDocumentのバージョン
+          document_hash = document['Hash']                                  # 既存SsmDocumentのHash
+          if (content_hash != document_hash): # 現新のHash値が異なる場合
+            try:
+              response = ssm.update_document(Name=document_name, Content=content, DocumentVersion='$LATEST')['DocumentDescription']['DocumentVersion'] # SsmDocumentを更新
+              ssm.update_document_default_version(Name=document_name, DocumentVersion=response) # Defaultバージョンを最新版に更新
+            except ClientError as e:
+              print(f'Err: {d} {e}')
+            else:
+              print(f'Inf: {d} updated.')
+          else:
+            print(f'Inf: {d} No Action.')
+      else:
+        print(f'Inf: {d} installed.')
+    ```
+
+2. ssm/documents/ssm-apache.yml を SSM Documentにアップロードします.
 
     ```bash
     ssm> python upload.py
@@ -869,7 +1030,7 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
 1. UbuntuでDocumentを実行した場合のテスト
 
-    UbuntuがBuildできるようにテンプレートを書き換えます.
+    CfnでUbuntuの起動ができるようにテンプレートを書き換えます.
 
     変更箇所は、Diffなどをつかい比較してください.
 
@@ -877,24 +1038,48 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
     [cfn/instance/web.yml](7.web/3/web.yml)
 
+    ```yml
+    Ubuntu:   # Region別 AMIId: https://cloud-images.ubuntu.com/locator/ec2/
+      ap-northeast-1:
+        AmiId: ami-02a829837a849f2ab　
+      us-east-1:
+        AmiId: ami-0c76ec1c339c9f28f
+
+    LT:
+      Type: AWS::EC2::LaunchTemplate
+      Properties:
+        LaunchTemplateData:
+          ImageId:  !FindInMap [ !Ref Distribution, !Ref AWS::Region, AmiId ] # Distrobution と Stackを作成するリージョン に合わせてAMIIDを指定します.
+    ```
+
 2. Ubuntuを起動
 
     ```bash
-    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    cfn> sam build && sam deploy -g
     Setting default arguments for 'sam deploy'
     =========================================
-    Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]:
     Parameter Env [stg]:
     Parameter VpcCidr [10.0.0.0/22]:
     Parameter BuildWeb [yes]:
-    Parameter Distribution [CentOS]: Ubuntu
+    Parameter Distribution [Amazon]: Ubuntu
     Confirm changes before deploy [y/N]:
     Allow SAM CLI IAM role creation [Y/n]:
     Disable rollback [y/N]:
     Save arguments to configuration file [Y/n]:
     SAM configuration file [samconfig.toml]:
     SAM configuration environment [default]:
+
+    -----------------------------------------------------------
+    Outputs
+    -----------------------------------------------------------
+    Key                 SsmRunCommand
+     :
+     :
+    Key                 SsmCommandResult
+     :
+     :
 
     Successfully created/updated stack -  スタック名 in リージョン名
     ```
@@ -908,35 +1093,35 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
 3. RunCommand実行
 
-    コマンド実行
+    SSM Document名を指定し、`aws ssm send-command`でRunCommandを実行、`aws ssm list-command-invocations`で実行結果を確認します.([DOCUMENT_NAME]に作成したDocument名と読み替えてください)
+
+     `sam deploy`出力(Outputs)の SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
 
     ```bash
-    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=[TAG_NAME] --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
+    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=**** --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
     > aws ssm list-command-invocations --command-id ${COMMANDID} --details
     {
         "CommandInvocations": [
             {
                 "DocumentVersion": "$DEFAULT",
                 "Status": "Failed",
-                "StatusDetails": "Failed",
+                "StatusDetails": "Failed", 
             }
         ]
     }
-    一部だけ表示
+    一部のみ表示
     ```
 
-    `Cfn` Outputs, SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
-
-    Systems Manager > Run Command > コマンド履歴 から ログの確認ができます.
+    Systems Manager > Run Command > コマンド履歴 からでもログが確認できます.
 
 4. AmazonLinux2を起動
 
     ```bash
-    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    cfn> sam build && sam deploy -g
     Setting default arguments for 'sam deploy'
     =========================================
-    Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]:
     Parameter Env [stg]:
     Parameter VpcCidr [10.0.0.0/22]:
     Parameter BuildWeb [yes]:
@@ -953,10 +1138,12 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
 
 5. RunCommand実行
 
-    コマンド実行
+    SSM Document名を指定し、`aws ssm send-command`でRunCommandを実行、`aws ssm list-command-invocations`で実行結果を確認します.([DOCUMENT_NAME]に作成したDocument名と読み替えてください)
+
+     `sam deploy`出力(Outputs)の SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
 
     ```bash
-    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=[TAG_NAME] --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
+    > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=******** --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
     > aws ssm list-command-invocations --command-id ${COMMANDID} --details
     {
         "CommandInvocations": [
@@ -967,17 +1154,14 @@ Systems Manager Document に 作成したShellScriptをUploadすると、Systems
             }
         ]
     }
-    一部だけ表示
-    > curl -v http://GlobalIP
+    一部のみ表示
     ```
 
-    `Cfn` Outputs, SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
+    Systems Manager > Run Command > コマンド履歴 からでも ログが確認できます.
 
-    Systems Manager > Run Command > コマンド履歴 から ログの確認ができます.
+#### 7.2.3. SystemsManage StateManager
 
-#### 7.2.3. CfnでVPCからWebサイトまでBuild
-
-SystemsManagerのStateManagerを利用してCfnからWebサイトをセットアップするため、テンプレートを書き換えます.
+StateManagerを利用してWebサイトをあるべき状態になるよう、テンプレートを書き換えます.
 
 変更箇所は、Diffなどをつかい比較してください.
 
@@ -987,29 +1171,46 @@ SystemsManagerのStateManagerを利用してCfnからWebサイトをセットア
 1. EC2をTerminate.
 
     ```bash
-    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+    cfn> sam build && sam deploy -g
     Setting default arguments for 'sam deploy'
     =========================================
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]: 
+    Parameter Env [stg]: 
+    Parameter VpcCidr [10.0.0.0/22]: 
     Parameter BuildWeb [yes]: no
-    ```
-
-1. EC2をBuild.
-
-    ```bash
-    cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
-    Setting default arguments for 'sam deploy'
-    =========================================
-    Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン
-    Parameter Env [stg]:
-    Parameter VpcCidr [10.0.0.0/22]:
-    Parameter BuildWeb [yes]:
-    Parameter Distribution [Ubuntu]: Amazon
-    Confirm changes before deploy [y/N]:
+    Parameter Distribution [Amazon]: 
+    Parameter AssociationName []: [SSM DOCUMENT NAME]
+    Parameter YumUpdate [false]: false
+    Confirm changes before deploy [y/N]: 
     Allow SAM CLI IAM role creation [Y/n]:
     Disable rollback [y/N]:
-    Save arguments to configuration file [Y/n]:
-    SAM configuration file [samconfig.toml]:
+    Save arguments to configuration file [Y/n]: 
+    SAM configuration file [samconfig.toml]: 
+    SAM configuration environment [default]:
+
+    Successfully created/updated stack - スタック名 in リージョン名
+    ```
+
+2. EC2をBuild.
+
+    ```bash
+    cfn> sam build && sam deploy -g
+    Setting default arguments for 'sam deploy'
+    =========================================
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]: 
+    Parameter Env [stg]: 
+    Parameter VpcCidr [10.0.0.0/22]: 
+    Parameter BuildWeb [yes]: yes
+    Parameter Distribution [Amazon]: 
+    Parameter AssociationName []:
+    Parameter YumUpdate [false]: false
+    Confirm changes before deploy [y/N]: 
+    Allow SAM CLI IAM role creation [Y/n]:
+    Disable rollback [y/N]:
+    Save arguments to configuration file [Y/n]: 
+    SAM configuration file [samconfig.toml]: 
     SAM configuration environment [default]:
 
     Successfully created/updated stack -  スタック名 in リージョン名

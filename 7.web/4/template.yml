@@ -22,7 +22,6 @@ Parameters:
     AllowedValues: [ Amazon, Ubuntu ]
   AssociationName:
     Type: String
-    Default: ssm-apache
   YumUpdate:
     Type: String
     Default: 'false'

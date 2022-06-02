@@ -1,37 +1,29 @@
 # IaC Self Learning<!-- omit in toc -->
 
-つくりこわしができると幸せになれる.
+つくりなおし・つくりこわしができると幸せになれる.
 
 ## Contents<!-- omit in toc -->
 
 - [1. はじめに](#1-はじめに)
   - [1.1. 目的](#11-目的)
   - [1.2. Iacメリット・デメリット](#12-iacメリットデメリット)
-  - [1.3. IaCを学ぶモチベーション](#13-iacを学ぶモチベーション)
+  - [1.3. IaCをやるモチベーション](#13-iacをやるモチベーション)
   - [1.4. 表記について](#14-表記について)
-  - [1.5. 免責事項](#15-免責事項)
-- [2. 開発環境構築](#2-開発環境構築)
-  - [2.1. Require](#21-require)
-  - [2.2. 設定](#22-設定)
-    - [2.2.1. `pip`コマンドを実行して、`aws cli`をインストール](#221-pipコマンドを実行してaws-cliをインストール)
-    - [2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行](#222-iamユーザのアクセスキーシークレットアクセスキーを発行)
-    - [2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定](#223-aws-configureコマンドを実行してアクセスキーシークレットアクセスキーを設定)
-    - [2.2.4. CodeCommit(コード管理)レポジトリ作成](#224-codecommitコード管理レポジトリ作成)
-    - [2.2.5. CodeCommit認証設定](#225-codecommit認証設定)
-    - [2.2.6. Git Clone(レポジトリのクローン)](#226-git-cloneレポジトリのクローン)
-    - [2.2.7. Python仮想環境作成](#227-python仮想環境作成)
-    - [2.2.8. VisualStudioCode(以下、VsCode)起動](#228-visualstudiocode以下vscode起動)
-- [3. SAM使い方](#3-sam使い方)
-  - [3.1. SAM用テンプレートファイル作成](#31-sam用テンプレートファイル作成)
-  - [3.2. スタック作成](#32-スタック作成)
-  - [3.3. スタック削除](#33-スタック削除)
-- [4. Git使い方](#4-git使い方)
-  - [4.1. Git Ignore](#41-git-ignore)
-  - [4.2. Stage](#42-stage)
-  - [4.3. Git Commit](#43-git-commit)
-  - [4.4. Git Push](#44-git-push)
-  - [4.5. Git Clone](#45-git-clone)
-  - [4.6. その他](#46-その他)
+- [2. 免責事項](#2-免責事項)
+- [3. 開発環境構築](#3-開発環境構築)
+  - [3.1. インストール](#31-インストール)
+  - [3.2. 設定](#32-設定)
+- [4. IaCで使うツールの基本操作](#4-iacで使うツールの基本操作)
+  - [4.1. SAM](#41-sam)
+    - [4.1.1. テンプレートファイル作成](#411-テンプレートファイル作成)
+    - [4.1.2. スタック作成](#412-スタック作成)
+    - [4.1.3. スタック削除](#413-スタック削除)
+  - [4.2. CodeCommit](#42-codecommit)
+    - [4.2.1. Ignore](#421-ignore)
+    - [4.2.2. Stage](#422-stage)
+    - [4.2.3. Commit](#423-commit)
+    - [4.2.4. Push](#424-push)
+    - [4.2.5. Clone](#425-clone)
 - [5. CloudFormationテンプレート構造](#5-cloudformationテンプレート構造)
   - [5.1. クラウドフォーメーションとは](#51-クラウドフォーメーションとは)
   - [5.2. テンプレートファイル](#52-テンプレートファイル)
@@ -41,22 +33,24 @@
     - [5.2.4. リソースセクション](#524-リソースセクション)
   - [5.3. 疑似パラメータ](#53-疑似パラメータ)
   - [5.4. 組み込み関数](#54-組み込み関数)
-- [6. IaCでEC2を立てる](#6-iacでec2を立てる)
-  - [6.1. Templateファイル設計パターン](#61-templateファイル設計パターン)
-  - [6.2. VPCテンプレート作成](#62-vpcテンプレート作成)
-  - [6.3. EC2テンプレート作成](#63-ec2テンプレート作成)
-- [7. IaCでApacheのセットアップ](#7-iacでapacheのセットアップ)
-  - [7.1. Webサーバ構築(ShellScript編)](#71-webサーバ構築shellscript編)
-    - [7.1.1. OS/Apacheセットアップ](#711-osapacheセットアップ)
-    - [7.1.2. Webサイト稼働確認](#712-webサイト稼働確認)
-  - [7.2. Webサーバ構築(Cfn編)](#72-webサーバ構築cfn編)
-    - [7.2.1. Systems Manager Document](#721-systems-manager-document)
-    - [7.2.2. Systems Manager Document の テスト](#722-systems-manager-document-の-テスト)
-    - [7.2.3. SystemsManage StateManager](#723-systemsmanage-statemanager)
-- [8. CodeCommit(Git)からコンテンツの展開](#8-codecommitgitからコンテンツの展開)
-  - [8.1. コンテンツ作成と展開用コード修正](#81-コンテンツ作成と展開用コード修正)
-  - [8.2. Git Push(作成したコンテンツをCodeCommitにPush)](#82-git-push作成したコンテンツをcodecommitにpush)
-  - [8.3. 再構築](#83-再構築)
+- [6. IaCの開発](#6-iacの開発)
+  - [6.1. IaCでEC2を立てる](#61-iacでec2を立てる)
+    - [6.1.1. Templateファイル設計パターン](#611-templateファイル設計パターン)
+    - [6.1.2. VPCテンプレート作成](#612-vpcテンプレート作成)
+    - [6.1.3. EC2テンプレート作成](#613-ec2テンプレート作成)
+  - [6.2. IaCでApacheのセットアップ](#62-iacでapacheのセットアップ)
+    - [6.2.1. Webサーバ構築(ShellScript編)](#621-webサーバ構築shellscript編)
+      - [6.2.1.1. OS/Apacheセットアップ](#6211-osapacheセットアップ)
+      - [6.2.1.2. Webサイト稼働確認](#6212-webサイト稼働確認)
+    - [6.2.2. Webサーバ構築(Cfn編)](#622-webサーバ構築cfn編)
+      - [6.2.2.1. Systems Manager Document](#6221-systems-manager-document)
+      - [6.2.2.2. Systems Manager Document の テスト](#6222-systems-manager-document-の-テスト)
+      - [6.2.2.3. SystemsManager StateManager](#6223-systemsmanager-statemanager)
+  - [6.3. CodeCommit(Git)からコンテンツの展開](#63-codecommitgitからコンテンツの展開)
+    - [6.3.1. コンテンツ作成とGitCloneのアクション追加](#631-コンテンツ作成とgitcloneのアクション追加)
+    - [6.3.2. Git Push(作成したコンテンツをCodeCommitにPush)](#632-git-push作成したコンテンツをcodecommitにpush)
+    - [6.3.3. スタック更新](#633-スタック更新)
+- [7. SAMを使った環境複製](#7-samを使った環境複製)
 
 ## 1. はじめに
 
@@ -68,12 +62,13 @@
 
     |Item|役割|
     |---|---|
-    |git|CodeCommitと開発したコードをやり取りするためのアプリ|
-    |CodeCommit|コード管理.GithubやGitlabのAWS版|
-    |CfnTemplate|Webサーバを構築するためのCloudFormationTemplateファイル|
-    |Content|Web公開するコンテンツ(html)|
-    |Python(boto3)|boto3: Pythonのモジュールでaws cliのPython版|
-    |Document|EC2で動かすBATファイルのようなもの|
+    |CodeCommit|コード管理.GithubやGitlabのAWS版.|
+    |&nbsp;git|CodeCommitと開発したコードをやり取りするためのアプリ|
+    |&nbsp;CfnTemplate|Webサーバを構築するためのCloudFormationTemplateファイル|
+    |&nbsp;Content|Web公開するコンテンツ(html)|
+    |SystemsManager||
+    |&nbsp;Python(boto3)|boto3: Pythonのモジュールでaws cliのPython版|
+    |&nbsp;Document|EC2で動かすBATファイルのようなもの|
     |aws sam cli|PythonのモジュールでCloudFormationの拡張版.GUIより早くTry&Errorが可能|
 
 ### 1.2. Iacメリット・デメリット
@@ -85,15 +80,17 @@
 - デメリット
   - 学習コスト(時間がかかる)
   - 開発コスト(時間)が高い、覚えなければならないことが沢山
-→ デメリットの方が大きいのでやる意味があるのが？正直、微妙.
+→ デメリットの方が大きいのでやる意味があるのだろうか？
 
-### 1.3. IaCを学ぶモチベーション
+### 1.3. IaCをやるモチベーション
 
-- Docker(K8S) → ボタンぽちぽちじゃなく、CLIです.
+- Docker      → ボタンぽちぽちじゃなく、CLIです.
 - CD/CI       → ボタンぽちぽちじゃなく、CLIです.
-- サーバーレス  → そもそもInfra不要!?.
+- サーバーレス → サーバー不要!.
 
-とモダンな開発にコードを書くことは必須です.
+とモダンな開発にコードを書くことは必須.
+
+モダンな開発に足を踏み入れないなら、IaCをやる努力は無駄.
 
 - 環境定義署をおこして、
 - 手順書見ながら、
@@ -101,6 +98,8 @@
 - スクショと定義書を差異チェック
 
 の手間を軽減できる筈.
+
+ドキュメントはOffice製品しか認めない・スクショがないとダメなどの制限があるなら、IaCをやる努力は無駄.
 
 ### 1.4. 表記について
 
@@ -113,17 +112,17 @@ ps> Powershellを示す
 cfn> : work directory/cfn
 ```
 
-### 1.5. 免責事項
+## 2. 免責事項
 
 本文書の情報については充分な注意を払っておりますが、その内容の正確性等に対して一切保障するものではありません.本文章の利用で発生したいかなる結果について、一切責任を負わないものとします.また、本文書のご利用により、万一、ご利用者様に何かしらの不都合や損害が発生したとしても、責任を負うものではありません.
 
-## 2. 開発環境構築
+## 3. 開発環境構築
 
 開発端末
 
 - Windows10
 
-### 2.1. Require
+### 3.1. インストール
 
 下記、3つのソフトをインストールしてください.
 
@@ -133,9 +132,9 @@ cfn> : work directory/cfn
   - Git Credential Managerはインストールしないこと.
 - [VisualStudioCode](https://code.visualstudio.com/download)
 
-### 2.2. 設定
+### 3.2. 設定
 
-#### 2.2.1. `pip`コマンドを実行して、`aws cli`をインストール
+1. `pip`コマンドを実行して、`aws cli`をインストール
 
 Pythonのパッケージを管理するものが`pip`です.
 
@@ -147,11 +146,11 @@ ps> python -m pip install awscli --user
 ps> python -m pip install pipenv --user
 ```
 
-#### 2.2.2. IAMユーザのアクセスキー・シークレットアクセスキーを発行
+1. IAMユーザのアクセスキー・シークレットアクセスキーを発行
 
 <img src="./images/20.accesskey.png" width="384">
 
-#### 2.2.3. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定
+1. `aws configure`コマンドを実行して、`アクセスキー`,`シークレットアクセスキー`を設定
 
 ```bash
 ps> aws configure
@@ -161,7 +160,7 @@ Default region name : [リージョン]
 Default output format : json
 ```
 
-#### 2.2.4. CodeCommit(コード管理)レポジトリ作成
+1. CodeCommit(コード管理)レポジトリ作成
 
 `aws codecommit`でレポジトリを作成します.
 
@@ -187,7 +186,7 @@ ps> aws codecommit create-repository --repository-name [レポジトリ名]
 
 レポジトリは、`aws configure`で設定したリージョンに作成されます.
 
-#### 2.2.5. CodeCommit認証設定
+1. CodeCommit認証設定
 
 ```bash
 ps> git config --global user.name [YOUR NAME]
@@ -207,7 +206,7 @@ Git Credential Manager を インストールしちゃうと、15分後ぐらい
   コンパネ > 資格情報 > Windows資格情報 から、対象のCodeCommitを削除して一時認証情報を削除します.
 ```
 
-#### 2.2.6. Git Clone(レポジトリのクローン)
+1. Git Clone(レポジトリのクローン)
 
 適当な場所にフォルダを作成し、レポジトリのクローンをつくります.
 
@@ -218,6 +217,7 @@ ps> Set-Location -Path $wkdir # フォルダに異動
 ps> git clone https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ名] # レポジトリのクローンをPCに作成
 Cloning into [レポジトリ名]...
 warning: You appear to have cloned an empty repository.
+ps> git checkout -b develop # 
 ps> Set-Location [レポジトリ名] # レポジトリ名のフォルダが作成される
 ps> (Get-Location).Path # ← ここに表示されるPathが[ローカルレポジトリ]と言います
 ```
@@ -228,7 +228,7 @@ git clone の URLは、以下のいずれかの方法で確認できます.
 - `aws codecommit get-repository --repository-name [レポジトリ名] --query repositoryMetadata.cloneUrlHttp --output text`
 - ManagementConsole
 
-#### 2.2.7. Python仮想環境作成
+1. Python仮想環境作成
 
 1台のパソコンでPython3.10, 3.8、きれいな環境(モジュールがない)から開発したくなります.
 
@@ -270,7 +270,7 @@ To activate this project's virtualenv, run pipenv shell.
 Alternatively, run a command inside the virtualenv with pipenv run.
 ```
 
-#### 2.2.8. VisualStudioCode(以下、VsCode)起動
+1. VisualStudioCode(以下、VsCode)起動
 
 CLIでCloudFormationTemplateを作成するのは無理なので、VsCodeを使います.
 
@@ -281,11 +281,24 @@ CLIでCloudFormationTemplateを作成するのは無理なので、VsCodeを使�
 
 VsCodeを起動し、ファイル > フォルダを開く と同じです.
 
-## 3. SAM使い方
+## 4. IaCで使うツールの基本操作
 
-簡単なテンプレートファイルを作成し、SAMでスタックの作成・削除を実施します.
+- AWSリソース作成ツール:
+  - SAM(Serverless Application Model)
+- バージョン管理:
+  - CodeCommit. GithubやGitlabのAWS版. IssueやWikiはない.
 
-### 3.1. SAM用テンプレートファイル作成
+### 4.1. SAM
+
+AWS SAMをつかってAWSリソースの作成・削除をおこないます.
+
+テンプレートファイルにAWSリソースのパラメータを記述し、これをもとにスタックを作成することでAWSリソースが作成され、スタックを削除することでAWSリソースが削除されます.
+
+テンプレートとスタックの関係性を単純に表現するとこんな感じです.
+テンプレート：設計図
+スタック：実体
+
+#### 4.1.1. テンプレートファイル作成
 
 VsCode上で、`Ctrl + Shift + @`を押すと、ターミナルが起動します.
 
@@ -328,93 +341,93 @@ cfn> touch template.yml
 
   - 擬似パラメータ: Googleで[cfn 擬似パラメータ]でリファレンスを検索してください.AWSアカウントやリージョンにしばられないテンプレートファイル作りなどで使います.
 
-### 3.2. スタック作成
+#### 4.1.2. スタック作成
 
-`sam build`でtemplate.ymlをCloudFormationにUploadされるファイルが.aws-samに作成されます.
+1. `sam build`でtemplate.ymlをCloudFormationにUploadされるファイルが.aws-samに作成されます.
 
-```bash
-cfn> sam build       # cfnフォルダにtemplate.ymlファイルがあれば、Buildしてくれる
-Build Succeeded
-Built Artifacts  : .aws-sam\build
-Built Template   : .aws-sam\build\template.yaml
-Commands you can use next
-=========================
-[*] Validate SAM template: sam validate
-[*] Invoke Function: sam local invoke
-[*] Test Function in the Cloud: sam sync --stack-name {stack-name} --watch
-[*] Deploy: sam deploy --guided
-```
+    ```bash
+    cfn> sam build       # cfnフォルダにtemplate.ymlファイルがあれば、Buildしてくれる
+    Build Succeeded
+    Built Artifacts  : .aws-sam\build
+    Built Template   : .aws-sam\build\template.yaml
+    Commands you can use next
+    =========================
+    [*] Validate SAM template: sam validate
+    [*] Invoke Function: sam local invoke
+    [*] Test Function in the Cloud: sam sync --stack-name {stack-name} --watch
+    [*] Deploy: sam deploy --guided
+    ```
 
-`sam deploy -g`でスタックを作成(AWSリソース作成)します.`samconfig.toml`に設定情報が書き込まれます.
+1. `sam deploy -g`でスタックを作成(AWSリソース作成)します.`samconfig.toml`に設定情報が書き込まれます.
 
-```bash
-cfn> sam deploy -g   # Buildしたテンプレファイルを展開してくれる(初回は、「-g」パラメータ入力が必須)
-Configuring SAM deploy
-======================
-        Looking for config file [samconfig.toml] :  Not found
-        Setting default arguments for 'sam deploy'
-        =========================================
-        Stack Name [sam-app]: [スタック名]              # CloudFormation スタック名を入力
-        AWS Region [ap-northeast-1]:                    # スタックを作成するリージョン
-        Parameter VpcCidr [10.0.0.0/22]:                # テンプレートに作成したパラメータ
-        Confirm changes before deploy [y/N]:            # デプロイ前に変更点の確認するか
-        Allow SAM CLI IAM role creation [Y/n]:          # SAM CLI から IAMロールを作成することを許可するか
-        Disable rollback [y/N]:                         # スタック作成に失敗した場合、Rollbackの有効・無効の選択
-        Save arguments to configuration file [Y/n]:     # 入力した値をConfigファイルに保存するか
-        SAM configuration file [samconfig.toml]:        # Configファイル名指定
-        SAM configuration environment [default]:        # Configu環境名指定
+    ```bash
+    cfn> sam deploy -g   # Buildしたテンプレファイルを展開してくれる(初回は、「-g」パラメータ入力が必須)
+    Configuring SAM deploy
+    ======================
+            Looking for config file [samconfig.toml] :  Not found
+            Setting default arguments for 'sam deploy'
+            =========================================
+            Stack Name [sam-app]: スタック名                 # CloudFormation スタック名を入力
+            AWS Region [ap-northeast-1]: リージョン名        # スタックを作成するリージョン
+            Parameter VpcCidr [10.0.0.0/22]:                # テンプレートに作成したパラメータ
+            Confirm changes before deploy [y/N]:            # デプロイ前に変更点の確認するか
+            Allow SAM CLI IAM role creation [Y/n]:          # SAM CLI から IAMロールを作成することを許可するか
+            Disable rollback [y/N]:                         # スタック作成に失敗した場合、Rollbackの有効・無効の選択
+            Save arguments to configuration file [Y/n]:     # 入力した値をConfigファイルに保存するか
+            SAM configuration file [samconfig.toml]:        # Configファイル名指定
+            SAM configuration environment [default]:        # Configu環境名指定
 
-CloudFormation stack changeset                          # ChangesetでVPCが追加させることがわかる
----------------------------------------------------------------------------------------------------------
-Operation                  LogicalResourceId          ResourceType               Replacement
----------------------------------------------------------------------------------------------------------   
-+ Add                      Vpc                        AWS::EC2::VPC              N/A
----------------------------------------------------------------------------------------------------------
+    CloudFormation stack changeset                          # ChangesetでVPCが追加させることがわかる
+    ---------------------------------------------------------------------------------------------------------
+    Operation                  LogicalResourceId          ResourceType               Replacement
+    ---------------------------------------------------------------------------------------------------------   
+    + Add                      Vpc                        AWS::EC2::VPC              N/A
+    ---------------------------------------------------------------------------------------------------------
 
-CloudFormation events from stack operations             # スタック作成のログ
----------------------------------------------------------------------------------------------------------
-ResourceStatus             ResourceType               LogicalResourceId          ResourceStatusReason       
----------------------------------------------------------------------------------------------------------   
-CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        -
-CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        Resource creation        
-                                                                                 Initiated
-CREATE_COMPLETE            AWS::EC2::VPC              Vpc                        -
-CREATE_COMPLETE            AWS::CloudFormation::Sta   miya-stack                 -
-                           ck
----------------------------------------------------------------------------------------------------------   
+    CloudFormation events from stack operations             # スタック作成のログ
+    ---------------------------------------------------------------------------------------------------------
+    ResourceStatus             ResourceType               LogicalResourceId          ResourceStatusReason       
+    ---------------------------------------------------------------------------------------------------------   
+    CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        -
+    CREATE_IN_PROGRESS         AWS::EC2::VPC              Vpc                        Resource creation        
+                                                                                    Initiated
+    CREATE_COMPLETE            AWS::EC2::VPC              Vpc                        -
+    CREATE_COMPLETE            AWS::CloudFormation::Sta   miya-stack                 -
+                              ck
+    ---------------------------------------------------------------------------------------------------------   
 
-Successfully created/updated stack - miya-stack in ap-northeast-3
-```
+    Successfully created/updated stack -  スタック名 in リージョン名
+    ```
 
 マネージメントコンソールからスタックが作成されていることを確認してみましょう.
 
-### 3.3. スタック削除
+#### 4.1.3. スタック削除
 
-`sam delete`で`samconfig.toml`に記述されているスタックを削除します.s
+1. `sam delete`で`samconfig.toml`に記述されているスタックを削除します.s
 
-```bash
-cfn> sam delete
-Are you sure you want to delete the stack my-stack in the region ap-northeast-1 ? [y/N]: y
-Are you sure you want to delete the folder my-stack in S3 which contains the artifacts? [y/N]: y
-- Deleting S3 object with key my-stack/aec7e9cf2ac98b0463f03cbc8b8c8713.template
-- Deleting Cloudformation stack my-stack
+    ```bash
+    cfn> sam delete
+    Are you sure you want to delete the stack my-stack in the region ap-northeast-1 ? [y/N]: y
+    Are you sure you want to delete the folder my-stack in S3 which contains the artifacts? [y/N]: y
+    - Deleting S3 object with key my-stack/aec7e9cf2ac98b0463f03cbc8b8c8713.template
+    - Deleting Cloudformation stack my-stack
 
-Deleted successfully
-```
+    Deleted successfully
+    ```
 
 マネージメントコンソールからスタックが削除されていることを確認してみましょう.
 
-## 4. Git使い方
+### 4.2. CodeCommit
 
-テンプレートファイルをCodeCommitを利用して管理します.
+テンプレートなどの資材をCodeCommitで管理します.
 
-### 4.1. Git Ignore
+#### 4.2.1. Ignore
 
 `.gitignore`ファイルに管理したくないパスを記載して、レポジトリから除外します.
 
 今回、除外したいもの
 
-- `sam build`で毎度生成されるので`.aws-sam/`フォルダは、管理対象外とします.
+- `sam build`で毎度生成されるので`.aws-sam/`フォルダは、レポジトリから除外します.
 
 ```bash
 > touch .gitignore
@@ -427,15 +440,15 @@ Deleted successfully
 */.aws-sam/
 ```
 
-VsCodeでは、除外ファイル・フォルダはグレー表示されます.
+VsCodeでは、除外対象はグレー表示されます.
 
-### 4.2. Stage
+#### 4.2.2. Stage
 
 変更をCommitするファイルをステージングエリアに追加します.
 
  ```bash
  > git add . # 「.」はすべてのファイルを意味します.
- warning: LF will be replaced by CRLF in .gitignore. # 改行コードを置換したメッセージなので無視できます.
+ warning: LF will be replaced by CRLF in .gitignore. # 改行コードを置換したメッセージなので無視してください.
  ```
 
  ```bash
@@ -453,9 +466,11 @@ VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリ�
 
 (`Ctrl + Shift + E`でエクスプローラが表示されます.)
 
-### 4.3. Git Commit
+#### 4.2.3. Commit
 
-変更・追加したファイルをCommitします.
+変更・追加・削除したファイルをCommitします.
+
+-m は、コミットメッセージです.
 
 ```bash
 > git commit -m 'init commit'
@@ -467,9 +482,9 @@ VsCodeの場合、ソース管理`Ctrl + Shift + G`でステージングエリ�
  create mode 100644 cfn/template.yml
 ```
 
-### 4.4. Git Push
+#### 4.2.4. Push
 
-Commitした内容をCodeCommitにPushします.
+Commitした内容をCodeCommit(リモートレポジトリ)にPushします.
 
 `git branch`でブランチ名を確認します.
 
@@ -488,64 +503,61 @@ Branch 'main' set up to track remote branch 'main' from 'origin'.
 
 マネジメントコンソールから、レポジトリにファイルがアップされているか確認してください.
 
-### 4.5. Git Clone
+#### 4.2.5. Clone
 
-CodeCommitのリモートレポジトリをPCのローカルレポジトリにクローンします.
+CodeCommitの「リモートレポジトリをPCにクローンします.
 
 1. ローカルレポジトリを削除します.(VsCodeでレポジトリを開いている場合は、VsCodeを閉じてください.)
 
-```bash
-> cd [ローカルレポジトリ]
-> python -m pipenv --rm # Python仮想環境削除
-Removing virtualenv...
-> cd ..
-> rm -rf [レポジトリ名]
-```
+    ```bash
+    > cd [ローカルレポジトリ] # Python仮想環境のShellに入っている場合は、exitで抜けてください
+    > python -m pipenv --rm # Python仮想環境削除
+    Removing virtualenv...
+    > cd ..
+    > rm -rf [レポジトリ名]
+    ```
 
-クローンするレポジトリのURLを取得します.
+    クローンするレポジトリのURLを取得します.
 
-- CLI
+      - CLI
 
-  ```bash
-  > aws codecommit get-repository --repository-name [レポジトリ名]
-  {
-    "repositoryMetadata": {
-      "accountId": "123456789012",
-      "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]", # クローンURL
-    }
-  }
-  # 1部だけ表示
-  ```
+        ```bash
+        > aws codecommit get-repository --repository-name [レポジトリ名]
+        {
+          "repositoryMetadata": {
+            "accountId": "123456789012",
+            "cloneUrlHttp": "https://git-codecommit.[リージョン].amazonaws.com/v1/repos/[レポジトリ]", # クローンURL
+          }
+        }
+        # 1部だけ表示
+        ```
 
-- GUI
+      - GUI
 
-  CodeCommit > レポジトリ > [レポジトリ名]
+        CodeCommit > レポジトリ > [レポジトリ名]
 
-  <img src="./images/codecommit_clone_url.png" width="320">
+        <img src="./images/codecommit_clone_url.png" width="320">
 
-  でUrlがコピーされます.
+        でUrlがコピーされます.
 
-Git Clone します.
+1. Git Clone します.
 
-```bash
-> cd [ワークディレクトリ]
-> git clone [クローンURL]
-remote: Counting objects: 5, done.
-Unpacking objects: 100% (5/5), 822 bytes | 137.00 KiB/s, done.
-> cd [レポジトリ名] # <- 慣れないと忘れがちです
-```
+    ```bash
+    > cd [ワークディレクトリ]
+    > git clone [クローンURL]
+    remote: Counting objects: 5, done.
+    Unpacking objects: 100% (5/5), 822 bytes | 137.00 KiB/s, done.
+    > cd [レポジトリ名] # <- 慣れないと忘れがちです
+    ```
 
-Python 仮想環境削除したので再構築します.
+1. Python 仮想環境削除したので再構築し、仮想環境のShellに切替ます.
 
-```bash
-> python -m pipenv sync
-Creating a virtualenv for this project...
-All dependencies are now up-to-date!
-```
-
-### 4.6. その他
-
-branch, pull requestは、後ほど.
+    ```bash
+    > python -m pipenv sync
+    Creating a virtualenv for this project...
+    All dependencies are now up-to-date!
+    > python -m pipenv shell
+    ```
 
 ## 5. CloudFormationテンプレート構造
 
@@ -553,7 +565,7 @@ branch, pull requestは、後ほど.
 
 Templateファイル(抽象的)からスタック(実体・リソース)を作成します.
 
-同じテンプレートファイルで異なる名前のスタックを作成すると、柴田大知・未崎のような双子関係になります.なので、本番・ステージング環境の構築やBlue＆GreenDeployに活用できます.
+同じテンプレートファイルで異なる名前のスタックを作成すると、柴田大知・未崎のような双子関係になります.なので、本番・ステージング環境の構築やBlue＆Green Deployに活用できます.
 
 ### 5.2. テンプレートファイル
 
@@ -661,10 +673,17 @@ Resources:
   - テンプレート内で一意なID
 
 - Type:
-  - [ここから探す](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
+  - [リファレンス](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html)
 
 - Properties:
   - Typeで指定したResourceTypeに従って記述します.
+
+リファレンスみてもわかない.
+
+手でリソース作成後、aws cli で設定情報を出力してリファレンスと開くしてみましょう.
+
+EC2の設定情報出力コマンド:
+ `aws ec2 describe-instances --output yaml --instance-ids i-xxxxxxxxxxx`
 
 ### 5.3. 疑似パラメータ
 
@@ -726,7 +745,11 @@ Resources:
 
 [関数たち](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
 
-## 6. IaCでEC2を立てる
+## 6. IaCの開発
+
+Webサイトの構築を少ない手順で構築する仕組み作り.
+
+### 6.1. IaCでEC2を立てる
 
 不要なリソースもなにかの参考になればという考えでTemplateファイルに記述しています.
 
@@ -736,7 +759,7 @@ VSCode起動
 > code .
 ```
 
-### 6.1. Templateファイル設計パターン
+#### 6.1.1. Templateファイル設計パターン
 
 1. 単一のファイル
 2. NestStack
@@ -745,7 +768,7 @@ VSCode起動
 
 NestStackでテンプレートを作成します.(AWSリソースがReplaceされるか？されないか？わからないので検証以外はお勧めしません.)
 
-### 6.2. VPCテンプレート作成
+#### 6.1.2. VPCテンプレート作成
 
 1. Build範囲
 
@@ -802,7 +825,7 @@ NestStackでテンプレートを作成します.(AWSリソースがReplaceさ�
     =========================================
     Stack Name [sam-app]: スタック名
     AWS Region [ap-northeast-1]: リージョン
-    Parameter Env [stg]: stg
+    Parameter Env [stg]: 
     Parameter VpcCidr [10.0.0.0/22]:
     Confirm changes before deploy [y/N]:
     Allow SAM CLI IAM role creation [Y/n]:
@@ -814,7 +837,7 @@ NestStackでテンプレートを作成します.(AWSリソースがReplaceさ�
     Successfully created/updated stack -  スタック名 in リージョン名
     ```
 
-### 6.3. EC2テンプレート作成
+#### 6.1.3. EC2テンプレート作成
 
 1. Build範囲
 
@@ -885,7 +908,7 @@ NestStackでテンプレートを作成します.(AWSリソースがReplaceさ�
 
     Session Managerのデフォルトは、`sh`です.`# bash`で使い慣れたTerminalに切り替えができます.
 
-## 7. IaCでApacheのセットアップ
+### 6.2. IaCでApacheのセットアップ
 
 CloudFormationで作成できるのは、OSまでです.OSレイア以上のセットアップはShellScriptで行います.
 
@@ -895,11 +918,11 @@ CloudFormationで作成できるのは、OSまでです.OSレイア以上のセ�
 
 - Shellが何回実行されても同じ結果になるようにすること(冪等性).
 
-### 7.1. Webサーバ構築(ShellScript編)
+#### 6.2.1. Webサーバ構築(ShellScript編)
 
 手動でやっていることを、ShellScript化してWebサーバをセットアップします.
 
-#### 7.1.1. OS/Apacheセットアップ
+##### 6.2.1.1. OS/Apacheセットアップ
 
 [ShellScript](./7.web/1/setup.sh)の実行.
 
@@ -909,7 +932,7 @@ Tag名(11行目)の値は、環境に合わせて変更してください.
 
 [ShellScript](./7.web/1/setup.sh)をコピーし、ターミナルに貼り付けます.
 
-#### 7.1.2. Webサイト稼働確認
+##### 6.2.1.2. Webサイト稼働確認
 
 1. WebサーバのGlobalIPを確認.(Cfn > スタック > ルートスタック名 > 出力 もしくは、 EC2 インスタンスより)
 2. GoogleChromeにGlobalIPアドレスを入力し、"Test Page"が表示されることを確認してください.
@@ -923,17 +946,17 @@ Tag名(11行目)の値は、環境に合わせて変更してください.
     ps> Invoke-WebRequest http://xxx.xxx.xxx.xxx
     ```
 
-### 7.2. Webサーバ構築(Cfn編)
+#### 6.2.2. Webサーバ構築(Cfn編)
 
 ShellScript化できたのでWebサーバをCfnでセットアップします.
 
-#### 7.2.1. Systems Manager Document
+##### 6.2.2.1. Systems Manager Document
 
 Systems Manager Document に作成したShellScriptをUploadします.
 
 RunCommand や StateManager で OSにログインすることなくWebのセットアップを実現できます.
 
-![doc](images/62.doc.dio.png)
+![doc](images/70.doc.dio.png)
 
 CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします.
 
@@ -942,13 +965,13 @@ CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします
     ```bash
     > mkdir -p ssm/documents
     > cd ssm
-    ssm> touch documents/ssm-apache.yml # ssm-apache: SSM Docuementの名前になりますので重複しない名前に変更してください.
+    ssm> touch documents/[DocumentName].yml # [DocumentName]: SSM Docuementの名前になりますので重複しない名前に変更してください.
     ssm> touch upload.py
     ```
 
     それぞれのファイルにコピーしてください.
 
-    [ssm/documents/ssm-apache.yml](7.web/2/ssm-apache.yml)
+    [ssm/documents/[DocumentName].yml](7.web/2/ssm-apache.yml)
 
     ```yml
     parameters:       # パラメータセクション
@@ -1019,14 +1042,14 @@ CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします
         print(f'Inf: {d} installed.')
     ```
 
-2. ssm/documents/ssm-apache.yml を SSM Documentにアップロードします.
+2. ssm/documents/[DocumentName].yml を SSM Documentにアップロードします.
 
     ```bash
     ssm> python upload.py
-    Inf: ssm-apache.yml installed.
+    Inf: [DocumentName].yml installed.
     ```
 
-#### 7.2.2. Systems Manager Document の テスト
+##### 6.2.2.2. Systems Manager Document の テスト
 
 1. UbuntuでDocumentを実行した場合のテスト
 
@@ -1040,7 +1063,7 @@ CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします
 
     ```yml
     Ubuntu:   # Region別 AMIId: https://cloud-images.ubuntu.com/locator/ec2/
-      ap-northeast-1:
+      ap-northeast-1: # ← EC2をたてるリージョンごとに記載が必要
         AmiId: ami-02a829837a849f2ab　
       us-east-1:
         AmiId: ami-0c76ec1c339c9f28f
@@ -1138,9 +1161,9 @@ CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします
 
 5. RunCommand実行
 
-    SSM Document名を指定し、`aws ssm send-command`でRunCommandを実行、`aws ssm list-command-invocations`で実行結果を確認します.([DOCUMENT_NAME]に作成したDocument名と読み替えてください)
+    SSM Document名を指定し、`aws ssm send-command`でRunCommandを実行、`aws ssm list-command-invocations`で実行結果を確認します.([DOCUMENT_NAME]はDocument名に書き換えてください.)
 
-     `sam deploy`出力(Outputs)の SsmRunCommand, SsmCommandResult にコマンド記述してあるので、コピペして使ってください.
+     `sam deploy`実行時のOutputs、`SsmRunCommand`, `SsmCommandResult` にコマンド記述してあるので、コピペして使ってください.
 
     ```bash
     > COMMANDID=$(aws ssm send-command --instance-ids [WEB_INSTANCEID] --parameters yumupdate=false,tagname=******** --query "Command.CommandId" --output text --document-name [DOCUMENT_NAME])
@@ -1159,13 +1182,14 @@ CloudFormationではなく、Python(boto3)を使いShellScriptをUploadします
 
     Systems Manager > Run Command > コマンド履歴 からでも ログが確認できます.
 
-#### 7.2.3. SystemsManage StateManager
+##### 6.2.2.3. SystemsManager StateManager
 
-StateManagerを利用してWebサイトをあるべき状態になるよう、テンプレートを書き換えます.
+StateManagerを追加するため、テンプレートを書き換えます.
 
 変更箇所は、Diffなどをつかい比較してください.
 
 [cfn/template.yml](7.web/4/template.yml)
+
 [cfn/instance/web.yml](7.web/4/web.yml)
 
 1. EC2をTerminate.
@@ -1180,7 +1204,7 @@ StateManagerを利用してWebサイトをあるべき状態になるよう、�
     Parameter VpcCidr [10.0.0.0/22]: 
     Parameter BuildWeb [yes]: no
     Parameter Distribution [Amazon]: 
-    Parameter AssociationName []: [SSM DOCUMENT NAME]
+    Parameter AssociationName []: SSM DOCUMENT NAME
     Parameter YumUpdate [false]: false
     Confirm changes before deploy [y/N]: 
     Allow SAM CLI IAM role creation [Y/n]:
@@ -1202,10 +1226,10 @@ StateManagerを利用してWebサイトをあるべき状態になるよう、�
     AWS Region [ap-northeast-1]: 
     Parameter Env [stg]: 
     Parameter VpcCidr [10.0.0.0/22]: 
-    Parameter BuildWeb [yes]: yes
+    Parameter BuildWeb [no]: yes
     Parameter Distribution [Amazon]: 
-    Parameter AssociationName []:
-    Parameter YumUpdate [false]: false
+    Parameter AssociationName []: SSM DOCUMENT NAME
+    Parameter YumUpdate [false]:
     Confirm changes before deploy [y/N]: 
     Allow SAM CLI IAM role creation [Y/n]:
     Disable rollback [y/N]:
@@ -1218,83 +1242,84 @@ StateManagerを利用してWebサイトをあるべき状態になるよう、�
 
 Systems Manager > ステートマネージャ > アソシエーションID > 実行履歴 > 実行ID > 出力 から ログの確認ができます.
 
-## 8. CodeCommit(Git)からコンテンツの展開
+ステートマネージャとクラウドフォーメーションのステータスに関連性がないことに注意してください.
+
+### 6.3. CodeCommit(Git)からコンテンツの展開
 
 WebサーバにGitをインストール、レポジトリからコンテンツを展開します.
 
-![git](images/vpc/git.dio.png)
+![git](images/80.git.dio.png)
 
-### 8.1. コンテンツ作成と展開用コード修正
+#### 6.3.1. コンテンツ作成とGitCloneのアクション追加
 
 1. コンテンツフォルダを作成し、コンテンツを配置します.
 
     ```bash
-    > mkdir content
-    > cd content
-    content> mkdir style
-    content> touch index.html
-    content> touch style/style.css
+    > mkdir content && cd content && mkdir style && touch index.html && touch style/style.css
+    # Bash: && は、成功したら次のコマンドを実行を意味します.
     ```
 
     [content/index.html](8.content/1/index.html)
 
     [content/style/style.css](8.content/1/style/style.css)
 
-1. TemplateにレポジトリParameterを追加します.
+    転写元: https://codepen.io/yuhomyan/pen/OJMejWJ
 
-    [cfn/template.yml]
+    vscode拡張機能(`Ctrl+Shift+X`)、Microsoft社の"Live Preview"でindex.htmlをPreviewすることができます.
 
-1. CodeCommitレポジトリからGit Clone可能になるよう、Policyを追加します.
+2. TemplateにレポジトリParameterを追加します.
+
+    [cfn/template.yml](8.content/1/template.yml)
+
+3. CodeCommit GitPull アクションをIAM Roleのインラインポリシーに追加します.
 
     [cfn/iam/iam.yml](8.content/1/iam.yml)
 
-1. StateManegerのパラメータを追加します.
+4. CodeCommitURL等のパラメータを追加します.
 
     [cfn/instance/web.yml](8.content/1/web.yml)
 
-1. Gitのインストール、コンテンツの展開ができるよう、Documentを修正します.
+5. Gitのインストール、GitCloneコマンドを追加します.
 
-    [ssm/documents/ssm-apache.yml](8.content/1/ssm-apache.yml)
+    [ssm/documents/[DocumentName].yml](8.content/1/ssm-apache.yml)
 
     ```bash
     ssm> python upload.py
-    Inf: ssm-apache.yml updated.
+    Inf: [DocumentName].yml updated.
+    # 更新後、StateManagerが自動的に実行されます.パラメータ入力チェックロジックでエラーで処理が中断されます.
     ```
 
-### 8.2. Git Push(作成したコンテンツをCodeCommitにPush)
+#### 6.3.2. Git Push(作成したコンテンツをCodeCommitにPush)
 
 CodeCommitにPushします.
 
 ```bash
-> git add .
-> git commit -m 'first commit'
-> git push -u origin [ブランチ名]
+content> git add .
+content> git commit -m 'add content'
+content> git push -u origin [ブランチ名]
 # > git status
 # On branch [ブランチ名]
 ```
 
-### 8.3. 再構築
+#### 6.3.3. スタック更新
 
-作り直しします.
+スタックを更新しCodeCommitからGitCloneする仕組みを実装します.
 
 ```bash
-cfn> sam delete --no-prompts
-Deleted successfully
-
-cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
+cfn> sam build && sam deploy -g
     Setting default arguments for 'sam deploy'
     =========================================
-    Stack Name [sam-app]: スタック名
-    AWS Region [ap-northeast-1]: リージョン
+    Stack Name [sam-app]:
+    AWS Region [ap-northeast-1]:
     Parameter Env [stg]:
     Parameter VpcCidr [10.0.0.0/22]:
     Parameter BuildWeb [yes]:
     Parameter Distribution [Amazon]: 
-    Parameter AssociationName []: SSM Document名
-    Parameter YumUpdate [false]: true
+    Parameter AssociationName []: SSM DOCUMENT NAME
+    Parameter YumUpdate [false]:
     Parameter CloneUrl []: CodeCommit HTTPSクローン URL
-    Parameter Branch []: 利用するブランチ名
-    Parameter ContentFolder [content]: htmlファイルがあるフォルダ名
+    Parameter Branch []: GitPushで指定したブランチ名
+    Parameter ContentFolder [content]: content(htmlファイルがあるフォルダ名)
     Confirm changes before deploy [y/N]:
     Allow SAM CLI IAM role creation [Y/n]:
     Disable rollback [y/N]:
@@ -1304,3 +1329,46 @@ cfn> sam build && sam deploy -g --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EX
 
     Successfully created/updated stack -  スタック名 in リージョン名
 ```
+
+スタックが更新されるとStateMangerが自動実行されます.
+
+http://xxx.xxx.xxx.xxx を開いてtest page から 更新されたことを確認してください.
+
+## 7. SAMを使った環境複製
+
+Webサイトが作成できたので、Production環境をつくります.
+
+1. 新たにスタックを作成します.`samconfig.toml`にProduction環境を追加します.
+
+    ```bash
+    sam build && sam deploy -g
+        Setting default arguments for 'sam deploy'
+        =========================================
+        Stack Name [sam-app]: スタック名(異なるスタック名.同名のスタックがあると上書きされます)
+        AWS Region [ap-northeast-1]:
+        Parameter Env [stg]: prd # <- Production環境なのでprd
+        Parameter VpcCidr [10.0.0.0/22]:
+        Parameter BuildWeb [yes]:
+        Parameter Distribution [Amazon]: 
+        Parameter AssociationName []:
+        Parameter YumUpdate [false]:
+        Parameter CloneUrl []: 
+        Parameter Branch []:
+        Parameter ContentFolder [content]:
+        Confirm changes before deploy [y/N]:
+        Allow SAM CLI IAM role creation [Y/n]:
+        Disable rollback [y/N]:
+        Save arguments to configuration file [Y/n]:
+        SAM configuration file [samconfig.toml]:
+        SAM configuration environment [default]: prd # <- samconfig.tomlで環境変数を複数持たせることができます.
+    ```
+
+    マネージメントコンソールより、EC2(Webサイト)が2つ作成されていること確認してください.
+
+2. 開発で作成したスタックを削除します.
+
+    `sam delete`
+
+    スタック名や環境名を指定しないと、`samconfig.toml`に記述されている[default]がターゲットになります.
+
+3. 

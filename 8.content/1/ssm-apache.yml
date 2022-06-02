@@ -29,6 +29,27 @@ parameters:
 
 mainSteps:
 - action: aws:runShellScript
+  name: ParameterCheck
+  precondition:
+    StringEquals:
+    - platformType
+    - Linux
+  inputs:
+    onFailure: exit
+    runCommand:
+    - |
+      #!/bin/bash
+      tagname={{tagname}}
+      cloneurl={{cloneurl}}
+      repositoryname={{repositoryname}}
+      branch={{branch}}
+      contentfolder={{contentfolder}}
+      if [ $tagname ]; then echo $tagname; else echo tagname is null ; exit 1 ; fi
+      if [ $cloneurl ]; then echo $cloneurl; else echo cloneurl is null ; exit 1 ; fi
+      if [ $repositoryname ]; then echo $repositoryname; else echo repositoryname is null ; exit 1 ; fi
+      if [ $branch ]; then echo $branch; else echo branch is null ; exit 1 ; fi
+      if [ $contentfolder ]; then echo $contentfolder; else echo contentfolder is null ; exit 1 ; fi
+- action: aws:runShellScript
   name: IsAmzLinux2
   precondition:
     StringEquals:

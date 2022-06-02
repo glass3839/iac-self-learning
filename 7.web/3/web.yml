@@ -25,17 +25,17 @@ Mappings:
       InstanceId: t4g.nano # Arm64
 
   Amazon:
-    ap-northeast-1:
+    ap-northeast-1: # ← EC2をたてるリージョンごとに記載が必要
       AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
-    us-east-1:
+    us-east-1: # ← EC2をたてるリージョンごとに記載が必要
       AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
     Ebs:
       DeviceName: /dev/xvda
 
   Ubuntu:   # Region別 AMIId: https://cloud-images.ubuntu.com/locator/ec2/
-    ap-northeast-1:
+    ap-northeast-1: # ← EC2をたてるリージョンごとに記載が必要
       AmiId: ami-02a829837a849f2ab
-    us-east-1:
+    us-east-1: # ← EC2をたてるリージョンごとに記載が必要
       AmiId: ami-0c76ec1c339c9f28f
     Ebs:
       DeviceName: /dev/sda1

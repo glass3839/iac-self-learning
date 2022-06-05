@@ -14,17 +14,19 @@ Parameters:       # 親スタックから受け取るパラメータ
     Type: String
   Distribution:
     Type: String
-  AssociationName:
-    Type: String
   YumUpdate:
+    Type: String
+  CloneUrl:
+    Type: String
+  Branch:
     Type: String
 
 Mappings:
   Web:
     prd:  # 本番環境の場合のパラメータ
       VolumeSize: 9
-      InstanceId: t4g.small # Arm64
-    stg: # ステージング環境の場合のパラメータ
+      InstanceId: t4g.nano # Arm64
+    dev: # ステージング環境の場合のパラメータ
       VolumeSize: 8
       InstanceId: t4g.nano # Arm64
 
@@ -52,7 +54,7 @@ Resources:
     Type: AWS::SSM::Association
     Properties:
       AssociationName: !Sub ${StackName}-${Env}
-      Name: !Ref AssociationName
+      Name: !Select [ 5, !Split [ '/', !Ref CloneUrl] ]
       WaitForSuccessTimeoutSeconds: 300
       Targets:
         - Key: InstanceIds
@@ -61,8 +63,10 @@ Resources:
       Parameters:
         yumupdate:
         - !Ref YumUpdate
-        tagname:
-        - !Sub ${StackName}-${Env}
+        cloneurl:
+        - !Ref CloneUrl
+        branch:
+        - !Ref Branch
 
   Web:
     Type: AWS::EC2::Instance

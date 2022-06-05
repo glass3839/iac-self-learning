@@ -22,7 +22,7 @@ Resources:
       Description: Role for Web Server
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # Management Console or AWS Cli から ARN　を確認する.
-      MaxSessionDuration: 21600
+      MaxSessionDuration: 3600
       Path: /
       Tags:
       - Key: Name

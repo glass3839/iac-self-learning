@@ -36,7 +36,7 @@ Resources:
             - codecommit:GitPull
             Resource:
             - !Sub arn:aws:codecommit:${RepositoryRegion}:${AWS::AccountId}:${RepositoryName}
-      MaxSessionDuration: 21600
+      MaxSessionDuration: 3600
       Path: /
       Tags:
       - Key: Name

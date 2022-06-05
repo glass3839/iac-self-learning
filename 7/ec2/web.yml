@@ -19,8 +19,8 @@ Mappings:
   Web:
     prd:  # 本番環境の場合のパラメータ
       VolumeSize: 9
-      InstanceId: t4g.small # Arm64
-    stg: # ステージング環境の場合のパラメータ
+      InstanceId: t4g.nano # Arm64
+    dev: # ステージング環境の場合のパラメータ
       VolumeSize: 8
       InstanceId: t4g.nano # Arm64
 
@@ -54,6 +54,7 @@ Resources:
       Tags:
       - Key: Name
         Value: !Sub ${StackName}-${Env}
+
   LT:
     Type: AWS::EC2::LaunchTemplate
     Properties:
@@ -117,8 +118,3 @@ Resources:
 Outputs:
   WebPublicIp:
     Value: !GetAtt Web.PublicIp
-  WebInstanceId:
-    Value: !Ref Web
-  WebTagName:
-    Value: !Sub ${StackName}-${Env}
- 

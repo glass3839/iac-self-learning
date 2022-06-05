@@ -6,11 +6,11 @@ Description: >
 Parameters:
   Env:
     Type: String
-    Default: stg
-    AllowedValues: [ prd, stg ]       # prd, stg 以外入力不可
+    Default: dev
+    AllowedValues: [ prd, dev ]       # prd, dev 以外入力不可
   VpcCidr:
     Type: String
-    Default: 10.0.0.0/22
+    Default: 172.16.0.0/22
 
 Resources:
   Vpc:

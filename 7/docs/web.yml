@@ -12,19 +12,43 @@ Parameters:       # 親スタックから受け取るパラメータ
     Type: String
   InstanceProfile:
     Type: String
+  Distribution:
+    Type: String
+  YumUpdate:
+    Type: String
+  CloneUrl:
+    Type: String
+  Branch:
+    Type: String
+
 
 Mappings:
-  Instance:
-    Common:
-      AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
-      DeviceName: /dev/xvda
   Web:
     prd:  # 本番環境の場合のパラメータ
       VolumeSize: 9
-      InstanceId: t4g.small
-    stg: # ステージング環境の場合のパラメータ
+      InstanceId: t4g.nano # Arm64
+    dev: # ステージング環境の場合のパラメータ
       VolumeSize: 8
-      InstanceId: t4g.nano
+      InstanceId: t4g.nano # Arm64
+
+  Amazon:
+    ap-northeast-1: # ← EC2をたてるリージョンごとに記載が必要
+      AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
+    us-east-1: # ← EC2をたてるリージョンごとに記載が必要
+      AmiId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}'
+    Ebs:
+      DeviceName: /dev/xvda
+
+  Ubuntu:   # Region別 AMIId: https://cloud-images.ubuntu.com/locator/ec2/
+    ap-northeast-1: # ← EC2をたてるリージョンごとに記載が必要
+      AmiId: ami-02a829837a849f2ab
+    us-east-1: # ← EC2をたてるリージョンごとに記載が必要
+      AmiId: ami-0c76ec1c339c9f28f
+    Ebs:
+      DeviceName: /dev/sda1
+
+Conditions:
+  IsNotAmz: !Not [ !Equals [ !Ref Distribution, Amazon ]]
 
 Resources:
   Web:
@@ -37,13 +61,14 @@ Resources:
       Tags:
       - Key: Name
         Value: !Sub ${StackName}-${Env}
+
   LT:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateName: !Sub ${StackName}-web
       LaunchTemplateData:
         BlockDeviceMappings:
-        - DeviceName: !FindInMap [ Instance, Common, DeviceName ]
+        - DeviceName: !FindInMap [ !Ref Distribution, Ebs, DeviceName ]
           Ebs:
             DeleteOnTermination: true
             Encrypted: true
@@ -52,7 +77,7 @@ Resources:
         CreditSpecification: 
           CpuCredits: Unlimited
         EbsOptimized: true
-        ImageId: !FindInMap [ Instance, Common, AmiId ]
+        ImageId:  !FindInMap [ !Ref Distribution, !Ref AWS::Region, AmiId ]
         InstanceType: !FindInMap [ Web, !Ref Env, InstanceId ]
         IamInstanceProfile:
           Arn: !Ref InstanceProfile
@@ -100,3 +125,8 @@ Resources:
 Outputs:
   WebPublicIp:
     Value: !GetAtt Web.PublicIp
+  WebInstanceId:
+    Value: !Ref Web
+  WebTagName:
+    Value: !Sub ${StackName}-${Env}
+ 

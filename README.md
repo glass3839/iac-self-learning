@@ -35,7 +35,7 @@
   - [7.3. EC2テンプレート](#73-ec2テンプレート)
   - [7.4. Webサーバーセットアップスクリプト開発](#74-webサーバーセットアップスクリプト開発)
   - [7.5. Cfnでデプロイ](#75-cfnでデプロイ)
-- [8. イミュータブルインフラストラクチャ](#8-イミュータブルインフラストラクチャ)
+  - [スタック削除とまとめ](#スタック削除とまとめ)
 
 ## 1. はじめに
 
@@ -200,10 +200,10 @@ Windows標準のPowerShellやCommand Promptだと少し使いずらいので代�
     - フォルダ内検索: `Ctrl + Shift + F`
     - ソース管理: `Ctrl + Shift + G`
 
-  -  Command Palette: `F1`
+  - Command Palette: `F1`
 
   - CommentOut: 行選択 →　`Ctrl(Right) + /`
-    
+
 ### 4.3. CodeCommit
 
 AWSが提供するバージョン管理サービス.(GithubのようにWikiやIssueはない.)
@@ -767,7 +767,6 @@ Webサイト(EC2+Apache)をOSにログインすることなく構築する仕組
 > 参考:  
 > NestedStack以外に、「Export/Import」や「SystemsManager　ParameterStore」を利用してスタックを分割することが可能です.
 
-
 ### 7.1. Webサイトのレポジトリ作成
 
 ```bash
@@ -885,7 +884,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
 <img src="images/doc.dio.png" width=512>
 
-1.  Webサーバーセットアップフローをざっくり考える
+1. Webサーバーセットアップフローをざっくり考える
 
     例)
 
@@ -942,11 +941,11 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
       ```
 
 1. Webコンテンツ作成
-   
+
     1. ContentフォルダにWebページを配置します.
 
         ```bash
-        >
+        repo>
         mkdir content && \
         touch content/index.html && \
         touch content/style.css && \
@@ -961,7 +960,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
         [CSS glowing icons](https://codepen.io/Krishnaa_Gupta/pen/MWoRqmr)
 
-   1. CodeCommitへPushします(contentフォルダのみ).
+    1. CodeCommitへPushします(contentフォルダのみ).
 
           ```bash
           content> git add .
@@ -969,7 +968,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
           content> git push -u origin dev
           ```
 
-2. セットアップスクリプト開発
+1. セットアップスクリプト開発
 
     > 開発Point  
     > 1. Shell Scriptを何回実行しても同じ結果になるようにしましょう.  
@@ -984,80 +983,91 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
     スクリプト例)
 
     - OSチェック(AmazonLinux2?)
-        ```bash
-        if [[ $(cat /etc/system-release | grep -E "^Amazon\sLinux\srelease\s2") ]]; then
-          cat /etc/system-release
-        else
-          echo "Amazon Linux 2 only support"
-          exit 1
-        fi
-        ```
+
+      ```bash
+      if [[ $(cat /etc/system-release | grep -E "^Amazon\sLinux\srelease\s2") ]]; then
+        cat /etc/system-release
+      else
+        echo "Amazon Linux 2 only support"
+        exit 1
+      fi
+      ```
 
     - YumUpdate(yum update有無)
-        ```bash
-        is_yumupdate="false"
-        if "${is_yumupdate}" ; then
-          echo "yum update..."
-          yum update -y
-        else
-          echo "skip yum update..."
-        fi
-        ``` 
+
+      ```bash
+      is_yumupdate="false"
+      if "${is_yumupdate}" ; then
+        echo "yum update..."
+        yum update -y
+      else
+        echo "skip yum update..."
+      fi
+      ```
+
     - ホスト名(Tag:Nameと同名?)
-        ```bash
-        if [[ ! $( which curl 2>/dev/null ) ]] ; then yum install -y curl ; fi
-        TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null`
-        TAGNAME=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null`
-        if [ "$(hostname)" != ${TAGNAME} ] ; then
-          echo "rename computer from $(hostname) to ${TAGNAME}..."
-          hostnamectl set-hostname ${TAGNAME}
-          if [ ! $(cat /etc/cloud/cloud.cfg 2>/dev/null | grep -i preserve_hostname) ] ; then
-            echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
-          else
-            sed -i 's/preserve_hostname.*/preserve_hostname: true/g' /etc/cloud/cloud.cfg
-          fi
+
+      ```bash
+      if [[ ! $( which curl 2>/dev/null ) ]] ; then yum install -y curl ; fi
+      TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null`
+      TAGNAME=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null`
+      if [ "$(hostname)" != ${TAGNAME} ] ; then
+        echo "rename computer from $(hostname) to ${TAGNAME}..."
+        hostnamectl set-hostname ${TAGNAME}
+        if [ ! $(cat /etc/cloud/cloud.cfg 2>/dev/null | grep -i preserve_hostname) ] ; then
+          echo "preserve_hostname: true" >> /etc/cloud/cloud.cfg
+        else
+          sed -i 's/preserve_hostname.*/preserve_hostname: true/g' /etc/cloud/cloud.cfg
         fi
-        echo "computer name is $(hostname)"
-        ```
+      fi
+      echo "computer name is $(hostname)"
+      ```
+
     - TimeZone(JST?)
-        ```bash
-        if [[ ! $(timedatectl 2>/dev/null | grep -E "Time zone.*Asia/Tokyo") ]] ; then
-          echo "set timezone..."
-          echo "change from $(timedatectl 2>/dev/null | grep -E "Time\szone.*" | sed s/"^\s\+"//g)"
-          timedatectl set-timezone Asia/Tokyo
-          timedatectl 2>/dev/null | grep -E "Time\szone.*" | sed s/"^\s\+"//g
-        fi
+
+      ```bash
+      if [[ ! $(timedatectl 2>/dev/null | grep -E "Time zone.*Asia/Tokyo") ]] ; then
+        echo "set timezone..."
+        echo "change from $(timedatectl 2>/dev/null | grep -E "Time\szone.*" | sed s/"^\s\+"//g)"
+        timedatectl set-timezone Asia/Tokyo
         timedatectl 2>/dev/null | grep -E "Time\szone.*" | sed s/"^\s\+"//g
-        ```
+      fi
+      timedatectl 2>/dev/null | grep -E "Time\szone.*" | sed s/"^\s\+"//g
+      ```
+
     - Apacheインストールとsystemctl
-        ```bash
-        if [[ ! $(which httpd 2>/dev/null) ]] ; then
-          yum install -y httpd
-          sleep 0.5
-          systemctl start httpd.service
-        fi
-        if [[ ! $(systemctl status httpd.service 2>/dev/null | grep -E "Loaded:.*enabled;") ]] ; then
-          systemctl enable httpd.service 2>/dev/null
-        fi
-        for x in {1..3}
-          do
-            if [[ $(systemctl status httpd.service 2>/dev/null | grep -E "Active:.*(running)") ]] ; then
-              continue
-            else
-              systemctl start httpd.service 2>/dev/null
-              sleep 1
-            fi
-          done
-        if [[ ! $(systemctl status httpd.service 2>/dev/null | grep -E "Active:.*(running)") ]] ; then
-          echo "httpd status is not running..."
-          exit 1
-        fi
-        echo "httpd status..."
-        systemctl status httpd.service 2>/dev/null | grep -E "Loaded:.*" | sed s/"^\s\+"//g
-        systemctl status httpd.service 2>/dev/null | grep -E "Active:.*" | sed s/"^\s\+"//g
-        ```
+
+      ```bash
+      if [[ ! $(which httpd 2>/dev/null) ]] ; then
+        yum install -y httpd
+        sleep 0.5
+        systemctl start httpd.service
+      fi
+      if [[ ! $(systemctl status httpd.service 2>/dev/null | grep -E "Loaded:.*enabled;") ]] ; then
+        systemctl enable httpd.service 2>/dev/null
+      fi
+      for x in {1..3}
+        do
+          if [[ $(systemctl status httpd.service 2>/dev/null | grep -E "Active:.*(running)") ]] ; then
+            continue
+          else
+            systemctl start httpd.service 2>/dev/null
+            sleep 1
+          fi
+        done
+      if [[ ! $(systemctl status httpd.service 2>/dev/null | grep -E "Active:.*(running)") ]] ; then
+        echo "httpd status is not running..."
+        exit 1
+      fi
+      echo "httpd status..."
+      systemctl status httpd.service 2>/dev/null | grep -E "Loaded:.*" | sed s/"^\s\+"//g
+      systemctl status httpd.service 2>/dev/null | grep -E "Active:.*" | sed s/"^\s\+"//g
+      ```
+
     - Webコンテンツ展開
+
       - gitインストールとCodeCommit認証設定
+
         ```bash
         if [[ ! $(which git 2>/dev/null) ]] ; then
           yum install -y git
@@ -1067,7 +1077,9 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
           sudo -u ec2-user git config --global credential.UseHttpPath true
         fi
         ```
+
       - レポジトリからCloneとWebコンテンツ展開
+
         ```bash
         DOCUROOT=$(cat /etc/httpd/conf/httpd.conf | grep -E ^DocumentRoot | awk '{print $2}' | sed 's/"//g')
         su - ec2-user -c "rm -rf my-website 2>/dev/null && \
@@ -1087,7 +1099,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
 1. SSM DocumentのUploadとスクリプトテスト
 
-     1. Document作業ディレクトリ内に,SSM　 DocumentとそれをUploadするスクリプトを作成します.
+    1. Document作業ディレクトリ内に,SSM　 DocumentとそれをUploadするスクリプトを作成します.
 
         ```bash
         repo>
@@ -1104,14 +1116,14 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
         [ssm/upload.py](7/docs/upload.py)
 
-    1. 作成したレポジトリ.ymlをSSM　Documentにアップします.
+    2. 作成したレポジトリ.ymlをSSM　Documentにアップします.
 
         ```bash
         ssm> python upload.py
         Inf: レポジトリ名.yml installed.
         ```
 
-    1. SSM RunCommandにて、Uploadしたスクリプトを実行します.
+    3. SSM RunCommandにて、Uploadしたスクリプトを実行します.
 
       RunCommandとは、SSM Documentを指定してインスタンスで実行させることができます.
 
@@ -1142,13 +1154,11 @@ SSM StateManagerを利用し、EC2(Webサーバー)にSSM　Documentが実行さ
 
     ```bash
     cfn> sam build && sam deploy
-
-    Successfully created/updated stack - my-website in リージョン名
     ```
 
     AWS Console > Systems　Manager > ステートマネージャー から 関連付けされていることを確認して下さい.関連付けの名前は、スタック名-環境名です.
 
-1. 本番環境のスタックを作成します.
+2. 本番環境のスタックを作成します.
 
     一通り開発が終わったので、本番環境を作成します.
 
@@ -1168,21 +1178,22 @@ SSM StateManagerを利用し、EC2(Webサーバー)にSSM　Documentが実行さ
         repo> git push origin --delete dev
         ```
 
-    1. Sam Deploy
+    2. Sam Deploy
 
         ```bash
         # Webサイト構築(本番環境)
         cfn> sam build && sam deploy -g
             Setting default arguments for 'sam deploy'
             =========================================
-            Stack Name []: my-website-rel1    
+            Stack Name []: my-website-rel1
             AWS Region []: ap-northeast-1
             Parameter Env []: prd
             Parameter VpcCidr []: 172.18.0.0/22
             Parameter BuildWeb []: yes
+
             Parameter Distribution []: Amazon
             Parameter YumUpdate []: true
-            Parameter CloneUrl []: https://git-codecommit.ap-northeast-1.amazonaws.com/v1/repos/my-website
+            Parameter CloneUrl []: https://git-codecommit.リージョン名.amazonaws.com/v1/repos/レポジトリ名
             Parameter Branch []: main
             Confirm changes before deploy [y/N]: 
             Allow SAM CLI IAM role creation [Y/n]: 
@@ -1204,15 +1215,22 @@ SSM StateManagerを利用し、EC2(Webサーバー)にSSM　Documentが実行さ
         > samconfig.toml  
         > 環境固有のパラメータを保存することができます.
 
-## 8. イミュータブルインフラストラクチャ
+### スタック削除とまとめ
 
-WebコンテンツをOSにログインすることなく改修&Releaseをする仕組み作りを目指します.
+- 後片付け
 
-ローカルレポジトリを削除します.
+  ```bash
+  # スタック削除
+  cfn> sam delete --config-env prd --no-prompts
+  cfn> sam delete --no-prompts
+  # CodeCommit削除
+  > aws codecommit delete-repository --repository-name レポジトリ名
+  # Ssm Document削除
+  > aws ssm delete-document --name ドキュメント名(レポジトリ名)
+  ```
 
-```bash
-repo> cd ..
-> rm -r レポジトリ名
-```
-
-
+- まとめ
+  - CloudFormationの開発とスタック作成をおこないました.
+  - CodeCommit(Git)と連携してデプロイをおこないました.
+  - ShellScriptでWebサーバー構築・Webコンテンツの展開をおこないました.
+  - SSM DocumentとStateManagerを活用することで、2つのコマンドでWebサイトの構築をおこないました.

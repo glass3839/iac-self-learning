@@ -951,7 +951,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
     CloufFormationにAWS_REGIONとREPOSITORY_NAMEを教えてあげる必要があるので、入力パラメータにGitClone Urlを追加してあげる必要があります.
 
-    > Clone Urlのフォーマットが:  
+    > Clone Urlのフォーマットが  
     > https://git-codecommit.AWS_REGION.amazonaws.com/v1/repos/REPOSITORY_NAME なので、  
     > REPOSITORY_NAMEは、URLを”/”で分割した5番目(先頭は0)  
     > `RepositoryName: !Select [ 5, !Split [ '/', !Ref CloneUrl] ]`  
@@ -1003,7 +1003,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
         [content/style.css](7/Content/style.css)
 
-        [参考]オンラインでWebサイトを無料で開発できるサイトですが、誰から作ったサイトをパクりました.
+        [参考]オンラインでWebサイトを無料で開発できるサイトですが、誰かが作ったサイトをパクりました.
 
         [CSS glowing icons](https://codepen.io/Krishnaa_Gupta/pen/MWoRqmr)
 
@@ -1063,7 +1063,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
         - bashでBoolean判定を行う場合は、このような書き方をするようです.
         - ${VAR} 変数を展開という意味です.
 
-    - ホスト名(Tag:Nameと同名?)
+    - ホスト名(Tag:Nameと同名か？)
 
       ```bash
       # EC2タグを利用した処理
@@ -1072,6 +1072,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
       TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null`
       TAGNAME=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Name 2>/dev/null`
       if [ "$(hostname)" != ${TAGNAME} ] ; then
+        # Tag:Nameとhostnameが異なる場合、ホスト名変更
         echo "rename computer from $(hostname) to ${TAGNAME}..."
         hostnamectl set-hostname ${TAGNAME}
         if [ ! $(cat /etc/cloud/cloud.cfg 2>/dev/null | grep -i preserve_hostname) ] ; then
@@ -1089,7 +1090,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
         - ! 反転させます. 否定形の判断処理に役立ちます( 0でなければ => ! ${VAR} -eq 0 )
         - sed: 指定文字(正規表現)を置換
 
-    - TimeZone(JST?)
+    - TimeZone(JSTですか?)
 
       ```bash
       # TimezoneがAsia/Tokyo以外なら、Asia/Tokyoにする
@@ -1175,11 +1176,11 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
         ```
 
         > git clone -b とは  
-        > branchを指定してcloneすることができます.つまり、不要なbranchの情報を得ることがないのでcloneスピードが上がります.
+        > branchを指定してcloneすることができます.つまり、不要なbranchの情報をDownloadしないのでcloneスピードが上がります.
 
 1. SSM DocumentのUploadとスクリプトテスト
 
-    1. Document作業ディレクトリ内に,SSM　 DocumentとそれをUploadするスクリプトを作成します.
+    1. Document作業ディレクトリ内に,SSM DocumentとそれをUploadするスクリプトを作成します.
 
         ```bash
         repo>
@@ -1196,7 +1197,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
         [ssm/upload.py](7/docs/upload.py)
 
-    2. 作成したレポジトリ名.ymlをSSM　Documentにアップします.
+    2. 作成したレポジトリ名.ymlをSSM Documentにアップします.
 
         ```bash
         ssm> python upload.py
@@ -1205,9 +1206,7 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
 
     3. SSM RunCommandにて、Uploadしたスクリプトを実行します.
 
-      RunCommandとは、SSM Documentを指定してインスタンスで実行させることができます.
-
-      AWS Console >  > CloudFormation > スタック > スタック名 > 出力　の `SsmRunCommand` `SsmRunCommandResult` からコピペできます.
+      RunCommandとは、SSM Documentをインスタンスで実行させることができます.
 
       ```bash
       # RunCommand実行
@@ -1216,7 +1215,9 @@ CLONE_URL_HTTP=$(aws codecommit create-repository 省略) ← コマンドの戻
       > aws ssm list-command-invocations --command-id ${COMMANDID} --details --query 'CommandInvocations[].{Document:DocumentName,Status:Status,Steps:CommandPlugins[].{StepName:Name,State:Status,Output:Output}}'
       ```
 
-      AWS Console > Systems　Manager > Run Command > コマンド履歴 > コマンドID > インスタンスID　からでも RunCommandの実行結果を確認できます.
+      - コマンドは、AWS Console >  CloudFormation > スタック > スタック名 > 出力　の `SsmRunCommand` `SsmRunCommandResult` からコピペできます.
+
+      - AWS Console > Systems　Manager > Run Command > コマンド履歴 > コマンドID > インスタンスID　からでも RunCommandの実行結果を確認できます.
 
       CloudFormationの出力、`Url`を開いてWebサイトが表示されていることを確認して下さい.
 
